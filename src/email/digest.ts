@@ -1,7 +1,22 @@
 import { Resend } from 'resend';
 import type { ScoredLead } from '../signals/base';
 
+// Set SEND_EMAIL=true in GitHub Actions secrets when you're ready to activate delivery.
+// Until then, the digest is built and logged but never sent.
 export async function sendWeeklyDigest(leads: ScoredLead[]): Promise<void> {
+  const top = leads.sort((a, b) => b.score - a.score).slice(0, 10);
+  const html = buildHtml(top);
+  const text = buildText(top);
+
+  const sendEnabled = process.env.SEND_EMAIL === 'true';
+
+  if (!sendEnabled) {
+    console.log('[digest] SEND_EMAIL not set to true — draft mode, not sending');
+    console.log('[digest] Draft preview (text):');
+    console.log(text);
+    return;
+  }
+
   if (!process.env.RESEND_API_KEY) {
     console.log('[digest] RESEND_API_KEY not set — skipping email');
     return;
@@ -14,15 +29,16 @@ export async function sendWeeklyDigest(leads: ScoredLead[]): Promise<void> {
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY);
-  const top = leads.sort((a, b) => b.score - a.score).slice(0, 10);
 
   await resend.emails.send({
     from: 'MacFire Lead Scout <scout@macfireltd.co.uk>',
     to,
     subject: `MacFire Lead Scout — ${top.length} new lead${top.length === 1 ? '' : 's'} this week`,
-    html: buildHtml(top),
-    text: buildText(top),
+    html,
+    text,
   });
+
+  console.log(`[digest] Sent to ${to}`);
 }
 
 function buildHtml(leads: ScoredLead[]): string {

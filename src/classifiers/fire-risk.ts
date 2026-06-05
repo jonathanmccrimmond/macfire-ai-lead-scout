@@ -54,14 +54,17 @@ export function classifyFireRisk(app: IdoxApplication): ClassificationResult {
   return { score, confidence, flags };
 }
 
-// Called only for borderline cases (score 20-45) to sharpen confidence
-export async function classifyWithHaiku(
+// Called only for borderline cases (score 20-45) to sharpen confidence.
+// Model is read from AI_MODEL env var so it can be swapped without code changes.
+export async function classifyWithAI(
   app: IdoxApplication,
   client: Anthropic
 ): Promise<ClassificationResult> {
   const base = classifyFireRisk(app);
 
   if (base.score >= 50 || base.score === 0) return base;
+
+  const model = process.env.AI_MODEL ?? 'claude-haiku-4-5-20251001';
 
   const prompt = `You are assessing planning applications for a fire protection company (fire extinguishers, alarms, risk assessments).
 
@@ -76,7 +79,7 @@ Respond with JSON only: {"score": number, "flags": string[], "reasoning": string
 
   try {
     const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model,
       max_tokens: 256,
       messages: [{ role: 'user', content: prompt }],
     });
@@ -101,3 +104,6 @@ Respond with JSON only: {"score": number, "flags": string[], "reasoning": string
     return base;
   }
 }
+
+// Keep old export name for backwards compatibility
+export { classifyWithAI as classifyWithHaiku };
