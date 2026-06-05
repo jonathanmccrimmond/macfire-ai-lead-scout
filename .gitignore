@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.*
+*.log
+
+# Never commit lead data, scrape output, or secrets
+data/
+output/
+leads*.json
