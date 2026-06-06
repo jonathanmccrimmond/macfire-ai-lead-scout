@@ -7,6 +7,26 @@ export interface ScoredLead {
   flags: string[];
   confidence: number;
   rawData: Record<string, unknown>;
+  // CH-specific (optional)
+  companyNumber?: string;
+  companyName?: string;
+  sector?: string;
+  trigger?: string;
+  directorName?: string;
+  directorCount?: number;
+  websiteUrl?: string;
+  websiteDomain?: string;
+  emailAddress?: string;
+  phoneNumber?: string;
+  mapsUrl?: string;
+  streetviewUrl?: string;
+  placesStatus?: string;
+  emailDraft?: string;
+  reasoning?: string;
+  premisesConfidence?: number;
+  operationalConfidence?: number;
+  complianceConfidence?: number;
+  contactabilityConfidence?: number;
 }
 
 export interface SignalResult {

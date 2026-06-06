@@ -14,8 +14,30 @@ export function parseSearchResultsPage(html: string, portalBase: string): Parsed
 
   // Idox renders results as <li class="searchresult">
   $('li.searchresult').each((_i, el) => {
-    const app = parseResultItem($, $(el), portalBase);
-    if (app) applications.push(app);
+    const item = $(el);
+
+    const refLink = item.find('a[id*="refVal"], h2 a, .searchResult-item-property a').first();
+    const reference = refLink.text().trim() || item.find('.reference').text().trim();
+    if (!reference) return;
+
+    const detailHref = refLink.attr('href') ?? '';
+    const address = item.find('p.address, .address, .searchResult-item-address').first().text().trim();
+    const proposal = item.find('p.proposal, .proposal, .searchResult-item-proposal').first().text().trim();
+    const appType = item.find('p.apptype, .apptype, .searchResult-item-apptype').first().text().trim();
+    const validatedRaw = item.find('p.metaInfo, .validatedDate, .metaInfo').first().text();
+    const validatedDate = validatedRaw.replace(/validated\s*:?\s*/i, '').trim();
+
+    const postcodeMatch = address.match(POSTCODE_RE);
+
+    applications.push({
+      reference,
+      address,
+      postcode: postcodeMatch?.[1]?.replace(/\s+/, ' ').toUpperCase(),
+      proposal,
+      appType,
+      validatedDate,
+      detailUrl: detailHref ? `${portalBase}${detailHref}` : undefined,
+    });
   });
 
   const hasNextPage = $('a.next, a[title="Next page"], .nextPage a').length > 0;
@@ -23,42 +45,10 @@ export function parseSearchResultsPage(html: string, portalBase: string): Parsed
   return { applications, hasNextPage };
 }
 
-function parseResultItem(
-  $: cheerio.CheerioAPI,
-  el: cheerio.Cheerio<cheerio.Element>,
-  portalBase: string
-): IdoxApplication | null {
-  // Reference is in an <a> inside <h2> or similar heading
-  const refLink = el.find('a[id*="refVal"], h2 a, .searchResult-item-property a').first();
-  const reference = refLink.text().trim() || el.find('.reference').text().trim();
-
-  if (!reference) return null;
-
-  const detailHref = refLink.attr('href') ?? '';
-  const address = el.find('p.address, .address, .searchResult-item-address').first().text().trim();
-  const proposal = el.find('p.proposal, .proposal, .searchResult-item-proposal').first().text().trim();
-  const appType = el.find('p.apptype, .apptype, .searchResult-item-apptype').first().text().trim();
-  const validatedRaw = el.find('p.metaInfo, .validatedDate, .metaInfo').first().text();
-  const validatedDate = validatedRaw.replace(/validated\s*:?\s*/i, '').trim();
-
-  const postcodeMatch = address.match(POSTCODE_RE);
-
-  return {
-    reference,
-    address,
-    postcode: postcodeMatch?.[1]?.replace(/\s+/, ' ').toUpperCase(),
-    proposal,
-    appType,
-    validatedDate,
-    detailUrl: detailHref ? `${portalBase}${detailHref}` : undefined,
-  };
-}
-
 export function parseWeekOptions(html: string): Array<{ value: string; label: string }> {
   const $ = cheerio.load(html);
   const options: Array<{ value: string; label: string }> = [];
 
-  // Idox week selector can be named 'week', 'weekDate', or 'selectedWeek'
   $('select[name="week"] option, select[name="weekDate"] option, select[name="selectedWeek"] option').each(
     (_i, el) => {
       const value = $(el).attr('value') ?? '';

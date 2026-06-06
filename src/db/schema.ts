@@ -14,13 +14,25 @@ export interface RawApplication {
   created_at?: string;
   run_id: string;
   source: 'planning' | 'companies_house';
-  council: string;
-  reference: string;
+  council?: string;
+  // Planning
+  reference?: string;
   address: string;
   postcode?: string;
   proposal?: string;
   app_type?: string;
   validated_date?: string;
+  // Companies House
+  company_number?: string;
+  company_name?: string;
+  company_status?: string;
+  company_type?: string;
+  sic_codes?: string[];
+  incorporated_date?: string;
+  director_name?: string;
+  director_count?: number;
+  total_appointments?: number;
+  dissolved_count?: number;
   raw_data: Record<string, unknown>;
 }
 
@@ -36,4 +48,26 @@ export interface Lead {
   flags: string[];
   confidence: number;
   status: 'new' | 'contacted' | 'won' | 'dead';
+  // CH-specific
+  company_number?: string;
+  company_name?: string;
+  sector?: string;
+  trigger?: string;
+  director_name?: string;
+  director_count?: number;
+  // Enrichment
+  website_url?: string;
+  website_domain?: string;
+  email_address?: string;
+  phone_number?: string;
+  maps_url?: string;
+  streetview_url?: string;
+  places_status?: string;
+  email_draft?: string;
+  reasoning?: string;
+  // Confidence dimensions
+  premises_confidence?: number;
+  operational_confidence?: number;
+  compliance_confidence?: number;
+  contactability_confidence?: number;
 }
