@@ -158,8 +158,6 @@ const SHARED_BUILDING_KEYWORDS = [
 ];
 
 const GEOGRAPHY_MODIFIERS: Record<string, number> = {
-  AB: -20,
-  DD: -10,
   PH: -5,
 };
 

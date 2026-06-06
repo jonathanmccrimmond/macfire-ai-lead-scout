@@ -5,7 +5,7 @@ const CH_BASE_URL = 'https://api.company-information.service.gov.uk/advanced-sea
 const CH_COMPANY_URL = 'https://api.company-information.service.gov.uk/company';
 const CH_BASE_OFFICER_URL = 'https://api.company-information.service.gov.uk';
 
-const SCOTTISH_PREFIXES = ['PA', 'KA', 'EH', 'FK', 'DD', 'AB', 'PH'];
+const SCOTTISH_PREFIXES = ['PA', 'KA', 'EH', 'FK', 'PH'];
 
 export function isScottishPostcode(postcode: string | undefined): boolean {
   const pc = (postcode ?? '').trim().toUpperCase();

@@ -8,6 +8,7 @@ export interface CouncilConfig {
 // Note: selectors are uniform across Idox portals but page structure may vary slightly.
 // If a council scraper returns 0 results, check the portal manually and adjust parse.ts if needed.
 export const COUNCILS: CouncilConfig[] = [
+  // ── Core Central Scotland ──────────────────────────────────────────────────
   {
     name: 'glasgow',
     portalBase: 'https://publicaccess.glasgow.gov.uk/online-applications',
@@ -33,9 +34,59 @@ export const COUNCILS: CouncilConfig[] = [
     portalBase: 'https://planning.southlanarkshire.gov.uk/online-applications',
     enabled: true,
   },
+  // ── Stirling / Forth Valley ────────────────────────────────────────────────
   {
-    name: 'aberdeen',
-    portalBase: 'https://publicaccess.aberdeencity.gov.uk/online-applications',
+    name: 'stirling',
+    portalBase: 'https://pabs.stirling.gov.uk/online-applications',
     enabled: true,
+  },
+  {
+    name: 'falkirk',
+    portalBase: 'https://edevelopment.falkirk.gov.uk/online',
+    enabled: true,
+  },
+  {
+    name: 'clackmannanshire',
+    portalBase: 'https://publicaccess.clacks.gov.uk/publicaccess',
+    enabled: true,
+  },
+  // ── Ayrshire ──────────────────────────────────────────────────────────────
+  {
+    name: 'north-ayrshire',
+    portalBase: 'https://www.eplanning.north-ayrshire.gov.uk/OnlinePlanning',
+    enabled: true,
+  },
+  {
+    name: 'south-ayrshire',
+    portalBase: 'https://publicaccess.south-ayrshire.gov.uk/online-applications',
+    enabled: true,
+  },
+  {
+    name: 'east-ayrshire',
+    portalBase: 'https://eplanning.east-ayrshire.gov.uk/online',
+    enabled: true,
+  },
+  // ── West / Inverclyde ─────────────────────────────────────────────────────
+  {
+    name: 'inverclyde',
+    portalBase: 'https://planning.inverclyde.gov.uk/Online',
+    enabled: true,
+  },
+  // ── Lothian ───────────────────────────────────────────────────────────────
+  {
+    name: 'west-lothian',
+    portalBase: 'https://planning.westlothian.gov.uk/publicaccess',
+    enabled: true,
+  },
+  // ── Portal URL unconfirmed — enable once verified ──────────────────────────
+  {
+    name: 'east-renfrewshire',
+    portalBase: '',
+    enabled: false,
+  },
+  {
+    name: 'renfrewshire',
+    portalBase: '',
+    enabled: false,
   },
 ];
