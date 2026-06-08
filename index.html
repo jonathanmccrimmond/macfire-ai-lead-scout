@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MacFire Lead Scout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #1A1F3C;
+  --navy-dark: #13162e;
+  --red: #C31E1F;
+  --white: #ffffff;
+  --muted: #8a91b0;
+  --border: rgba(255,255,255,0.1);
+  --green: #22c55e;
+  --amber: #f59e0b;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: #0e1127;
+  color: var(--white);
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+header {
+  background: var(--navy);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 58px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo-lockup { display: flex; align-items: stretch; border-radius: 5px; overflow: hidden; }
+.logo-light { background: var(--white); color: var(--navy); font-size: 14px; font-weight: 900; padding: 6px 11px; letter-spacing: -0.3px; }
+.logo-dark  { background: var(--red);   color: var(--white); font-size: 14px; font-weight: 900; padding: 6px 11px; letter-spacing: -0.3px; }
+.header-subtitle { font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.45); margin-left: 14px; }
+.header-left { display: flex; align-items: center; }
+.header-right { font-size: 12px; color: var(--muted); }
+
+/* ── Stats bar ── */
+.stats-bar {
+  background: var(--navy);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  display: flex;
+  align-items: stretch;
+}
+.stat-item {
+  padding: 14px 22px;
+  border-right: 1px solid var(--border);
+  text-align: center;
+  min-width: 90px;
+}
+.stat-item:first-child { padding-left: 0; }
+.stat-number { font-size: 22px; font-weight: 800; line-height: 1; margin-bottom: 3px; }
+.stat-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.stat-total    .stat-number { color: var(--white); }
+.stat-new      .stat-number { color: #60a5fa; }
+.stat-contacted .stat-number { color: var(--amber); }
+.stat-won      .stat-number { color: var(--green); }
+.stat-dead     .stat-number { color: #6b7280; }
+
+/* ── Filter bar ── */
+.filter-bar {
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.filter-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+select {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.13);
+  color: var(--white);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  outline: none;
+}
+select:hover { border-color: rgba(255,255,255,0.25); }
+select option { background: var(--navy); }
+.filter-sep { color: rgba(255,255,255,0.15); font-size: 18px; font-weight: 100; }
+.clear-btn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.14);
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 13px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.clear-btn:hover { color: var(--white); border-color: rgba(255,255,255,0.3); }
+.results-count { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+/* ── Sections ── */
+.section-header {
+  padding: 16px 28px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-header::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.08); }
+
+/* ── Lead list ── */
+.lead-list { padding: 0 28px 8px; display: flex; flex-direction: column; gap: 10px; }
+.lead-list-end { padding-bottom: 48px; }
+
+/* ── Lead card ── */
+.lead-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 12px;
+  padding: 18px 22px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.lead-card:hover { border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.055); }
+.lead-card.status-contacted { border-left: 3px solid var(--amber); }
+.lead-card.status-won       { border-left: 3px solid var(--green); }
+.lead-card.status-dead      { opacity: 0.42; }
+
+.card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 9px;
+}
+.card-meta { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+
+/* Source badges */
+.src-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 4px;
+}
+.src-planning        { background: rgba(96,165,250,0.14); color: #93c5fd; border: 1px solid rgba(96,165,250,0.25); }
+.src-companies-house { background: rgba(167,139,250,0.14); color: #c4b5fd; border: 1px solid rgba(167,139,250,0.25); }
+.src-linkedin        { background: rgba(14,118,168,0.18); color: #7dd3fc; border: 1px solid rgba(14,118,168,0.3); }
+.src-twitter         { background: rgba(29,161,242,0.14); color: #7dd3fc; border: 1px solid rgba(29,161,242,0.25); }
+.src-facebook        { background: rgba(66,103,178,0.18); color: #93c5fd; border: 1px solid rgba(66,103,178,0.3); }
+
+.ref-label { font-size: 11px; color: rgba(255,255,255,0.3); font-weight: 500; }
+
+/* Status pill */
+.status-pill {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 20px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.pill-new       { background: rgba(96,165,250,0.13); border: 1px solid rgba(96,165,250,0.28); color: #93c5fd; }
+.pill-contacted { background: rgba(245,158,11,0.13); border: 1px solid rgba(245,158,11,0.28); color: #fbbf24; }
+.pill-won       { background: rgba(34,197,94,0.13);  border: 1px solid rgba(34,197,94,0.28);  color: #4ade80; }
+.pill-dead      { background: rgba(107,114,128,0.13);border: 1px solid rgba(107,114,128,0.28);color: #9ca3af; }
+
+/* Score badge */
+.score-badge {
+  color: #fff; font-size: 13px; font-weight: 800;
+  padding: 5px 12px; border-radius: 6px; white-space: nowrap; flex-shrink: 0;
+}
+.score-high { background: var(--red); }
+.score-mid  { background: rgba(245,158,11,0.8); }
+.score-low  { background: rgba(107,114,128,0.55); }
+
+.lead-address  { font-size: 15px; font-weight: 700; color: var(--white); margin-bottom: 5px; line-height: 1.3; }
+.lead-proposal { font-size: 13.5px; color: rgba(255,255,255,0.72); line-height: 1.55; margin-bottom: 11px; }
+
+.flags-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 11px; }
+.flag-pill {
+  background: rgba(195,30,31,0.12); border: 1px solid rgba(195,30,31,0.28);
+  color: #fca5a5; font-size: 10px; font-weight: 600;
+  padding: 2px 7px; border-radius: 20px;
+}
+
+/* Contact row */
+.contact-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 11px;
+}
+.contact-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+a.contact-link { color: #93c5fd; text-decoration: none; }
+a.contact-link:hover { text-decoration: underline; }
+
+/* Card footer */
+.card-footer {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.card-date { font-size: 11px; color: rgba(255,255,255,0.3); }
+
+.actions { display: flex; gap: 7px; }
+.btn {
+  font-family: var(--font); font-size: 12px; font-weight: 700;
+  padding: 6px 14px; border-radius: 6px; border: none;
+  cursor: pointer; transition: all 0.15s; letter-spacing: 0.03em;
+}
+.btn-approve {
+  background: rgba(34,197,94,0.13); border: 1px solid rgba(34,197,94,0.28); color: #4ade80;
+}
+.btn-approve:hover { background: rgba(34,197,94,0.24); border-color: rgba(34,197,94,0.5); }
+.btn-won {
+  background: rgba(34,197,94,0.22); border: 1px solid rgba(34,197,94,0.45); color: #4ade80;
+}
+.btn-won:hover { background: rgba(34,197,94,0.32); }
+.btn-reject {
+  background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.22); color: #f87171;
+}
+.btn-reject:hover { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.4); }
+.btn-reset {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: var(--muted);
+}
+.btn-reset:hover { background: rgba(255,255,255,0.1); color: var(--white); }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 72px 24px; color: var(--muted); }
+.empty-state h3 { font-size: 17px; font-weight: 600; margin-bottom: 7px; color: rgba(255,255,255,0.45); }
+.empty-state p { font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo-lockup">
+      <div class="logo-light">MacFire</div>
+      <div class="logo-dark">Fire Ltd</div>
+    </div>
+    <span class="header-subtitle">— Lead Scout</span>
+  </div>
+  <div class="header-right" id="runInfo">Loading...</div>
+</header>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<div class="filter-bar">
+  <span class="filter-label">Source</span>
+  <select id="fSource">
+    <option value="">All sources</option>
+    <option value="planning">Planning Portals</option>
+    <option value="companies-house">Companies House</option>
+    <option value="linkedin">LinkedIn</option>
+    <option value="twitter">X / Twitter</option>
+    <option value="facebook">Facebook</option>
+  </select>
+  <span class="filter-sep">|</span>
+  <span class="filter-label">Status</span>
+  <select id="fStatus">
+    <option value="">All</option>
+    <option value="new">New</option>
+    <option value="contacted">Contacted</option>
+    <option value="won">Won</option>
+    <option value="dead">Rejected</option>
+  </select>
+  <span class="filter-sep">|</span>
+  <span class="filter-label">Min score</span>
+  <select id="fScore">
+    <option value="0">Any</option>
+    <option value="50">50+</option>
+    <option value="65" selected>65+</option>
+    <option value="75">75+</option>
+  </select>
+  <button class="clear-btn" id="clearBtn">Reset filters</button>
+  <span class="results-count" id="resultCount"></span>
+</div>
+
+<div id="leadsRoot"></div>
+
+<script>
+const STORE_KEY = 'macfire_scout_v2';
+
+const SEED = [
+  // ── Planning portal leads ──────────────────────────────────────────────
+  {
+    id:'p1', source:'planning', sourceLabel:'Glasgow City Council',
+    address:'45 Sauchiehall Street, Glasgow G2 3LQ',
+    proposal:'Change of use from retail to licensed restaurant and bar, with new mezzanine level and commercial kitchen extraction.',
+    score:88, flags:['change-of-use','food-and-drink','licensed-premises','structural-works'],
+    date:'2026-06-06', status:'new', contact:null, ref:'DC/26/00412'
+  },
+  {
+    id:'p2', source:'planning', sourceLabel:'Glasgow City Council',
+    address:'120 West Regent Street, Glasgow G2 2RQ',
+    proposal:'Conversion of upper floors (2nd–5th) to 24-bedroom hotel with ground-floor bar and reception.',
+    score:82, flags:['hotel','change-of-use','food-and-drink'],
+    date:'2026-06-05', status:'new', contact:null, ref:'DC/26/00389'
+  },
+  {
+    id:'p3', source:'planning', sourceLabel:'Stirling Council',
+    address:'Forthside Way, Stirling FK8 1QZ',
+    proposal:'New-build sports and leisure facility, 3,200 sqm — gym, fitness studios and café.',
+    score:78, flags:['new-build','sports-leisure','large-premises'],
+    date:'2026-06-04', status:'new', contact:null, ref:'STIR/26/00221'
+  },
+  {
+    id:'p6', source:'planning', sourceLabel:'West Lothian Council',
+    address:'34 High Street, Linlithgow EH49 7AE',
+    proposal:'New build care home, 60 bedrooms, two storeys, with communal lounges and dining area.',
+    score:71, flags:['new-build','care-home','residential-care'],
+    date:'2026-06-01', status:'new', contact:null, ref:'WL/26/00203'
+  },
+  {
+    id:'p4', source:'planning', sourceLabel:'Falkirk Council',
+    address:'8 Commercial Road, Falkirk FK1 1NJ',
+    proposal:'Change of use from vacant retail unit to gymnasium and fitness centre.',
+    score:74, flags:['change-of-use','sports-leisure'],
+    date:'2026-06-03', status:'new', contact:null, ref:'FAL/26/00178'
+  },
+  {
+    id:'p5', source:'planning', sourceLabel:'North Ayrshire Council',
+    address:'Unit 7 Quarry Road Industrial Estate, Irvine KA12 8EZ',
+    proposal:'Extension and change of use of existing unit to food production warehouse with cold storage.',
+    score:67, flags:['warehouse','food-production','extension'],
+    date:'2026-06-02', status:'contacted', contact:null, ref:'NA/26/00156'
+  },
+  {
+    id:'p7', source:'planning', sourceLabel:'South Lanarkshire Council',
+    address:'Unit 4 Hamilton Business Park, Hamilton ML3 0QA',
+    proposal:'New-build industrial unit (2,800 sqm) for storage and distribution of catering supplies.',
+    score:65, flags:['new-build','warehouse','food-related'],
+    date:'2026-06-01', status:'new', contact:null, ref:'SL/26/00341'
+  },
+  // ── Companies House leads ──────────────────────────────────────────────
+  {
+    id:'c1', source:'companies-house', sourceLabel:'Companies House',
+    address:'Glasgow City Centre',
+    proposal:'New incorporation: Forth Valley Care Homes Ltd — residential care facility management across Central Scotland.',
+    score:72, flags:['new-business','care-home','residential-care'],
+    date:'2026-06-06', status:'new',
+    contact:{ director:'Margaret McAllister', email:null, phone:null, website:null },
+    ref:'SC821019'
+  },
+  {
+    id:'c2', source:'companies-house', sourceLabel:'Companies House',
+    address:'Glasgow East End',
+    proposal:'New incorporation: Central Belt Hospitality Group Ltd — restaurant & bar operations across Central Scotland.',
+    score:65, flags:['new-business','hospitality','restaurant'],
+    date:'2026-06-07', status:'new',
+    contact:{ director:'James Robertson', email:null, phone:null, website:null },
+    ref:'SC821034'
+  },
+  {
+    id:'c3', source:'companies-house', sourceLabel:'Companies House',
+    address:'Stirling',
+    proposal:'New incorporation: Forth Gym Holdings Ltd — fitness centre and personal training facilities.',
+    score:68, flags:['new-business','sports-leisure','gym'],
+    date:'2026-06-05', status:'new',
+    contact:{ director:'David Mackay', email:null, phone:null, website:null },
+    ref:'SC820987'
+  },
+  // ── LinkedIn leads ─────────────────────────────────────────────────────
+  {
+    id:'s1', source:'linkedin', sourceLabel:'LinkedIn',
+    address:'Glasgow City Centre (new development)',
+    proposal:'Job posting: "Fire Safety Manager required for new 5-star hotel development, Glasgow city centre, opening Q4 2026." Posted by Apex Hotels Ltd.',
+    score:79, flags:['hotel','new-build','fire-safety-hiring'],
+    date:'2026-06-07', status:'new',
+    contact:{ director:'Apex Hotels Ltd — HR', email:'recruitment@apexhotels.co.uk', phone:null, website:'apexhotels.co.uk' },
+    ref:'LI-2026-06-07-001'
+  },
+  {
+    id:'s4', source:'linkedin', sourceLabel:'LinkedIn',
+    address:'Clydebank, West Dunbartonshire',
+    proposal:'Company update from TrustCare Group: "We\'re delighted to confirm planning approval for our new Clydebank care village, 85 beds, construction starting Q3 2026."',
+    score:76, flags:['care-home','new-build','planning-approved'],
+    date:'2026-06-04', status:'new',
+    contact:{ director:'TrustCare Group', email:null, phone:null, website:'trustcaregroup.co.uk' },
+    ref:'LI-2026-06-04-003'
+  },
+  // ── X / Twitter leads ─────────────────────────────────────────────────
+  {
+    id:'s2', source:'twitter', sourceLabel:'X / Twitter',
+    address:'22 King Street, Stirling FK8',
+    proposal:'@ScottishBrewCo: "Our new Stirling taproom is under construction at 22 King Street! Opening March 2027. Looking for local contractors and suppliers." [public post]',
+    score:61, flags:['new-premises','food-and-drink','construction'],
+    date:'2026-06-06', status:'new',
+    contact:{ director:'@ScottishBrewCo', email:null, phone:null, website:'scottishbrewco.co.uk' },
+    ref:'TW-2026-06-06-003'
+  },
+  {
+    id:'s5', source:'twitter', sourceLabel:'X / Twitter',
+    address:'Paisley Town Centre',
+    proposal:'@PaisleyMarket: "Huge news — we\'ve secured a new home for Paisley Market Hall on High Street. Fit-out begins next month. 40+ traders." [public post]',
+    score:69, flags:['new-premises','market-hall','retail','fit-out'],
+    date:'2026-06-05', status:'new',
+    contact:{ director:'@PaisleyMarket', email:null, phone:null, website:null },
+    ref:'TW-2026-06-05-007'
+  },
+  // ── Facebook leads ────────────────────────────────────────────────────
+  {
+    id:'s3', source:'facebook', sourceLabel:'Facebook',
+    address:'Burns Statue Square, Ayr KA7',
+    proposal:'"Ayr Leisure & Events Ltd": "We\'ve secured new premises on Burns Statue Square — major refurb underway! New events venue opening summer 2026." [public business page]',
+    score:68, flags:['new-premises','events-venue','refurbishment'],
+    date:'2026-06-05', status:'new',
+    contact:{ director:'Ayr Leisure & Events Ltd', email:null, phone:null, website:null },
+    ref:'FB-2026-06-05-002'
+  },
+  {
+    id:'s6', source:'facebook', sourceLabel:'Facebook',
+    address:'Motherwell Town Centre',
+    proposal:'"Motherwell Food Hall Ltd": "Planning granted! We\'re converting the old Civic Centre ground floor into a street food hall. 20 units. Opening early 2027." [public post]',
+    score:73, flags:['new-premises','food-and-drink','change-of-use','planning-approved'],
+    date:'2026-06-03', status:'new',
+    contact:{ director:'Motherwell Food Hall Ltd', email:null, phone:null, website:null },
+    ref:'FB-2026-06-03-005'
+  }
+];
+
+// Load or seed
+let leads = (() => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(STORE_KEY));
+    if (stored && stored.length === SEED.length && stored[0].id === SEED[0].id) return stored;
+  } catch(e) {}
+  return SEED.map(l => ({...l}));
+})();
+
+function save() { localStorage.setItem(STORE_KEY, JSON.stringify(leads)); }
+
+function setStatus(id, status) {
+  leads = leads.map(l => l.id === id ? {...l, status} : l);
+  save(); render();
+}
+
+function filtered() {
+  const src   = document.getElementById('fSource').value;
+  const sts   = document.getElementById('fStatus').value;
+  const min   = parseInt(document.getElementById('fScore').value) || 0;
+  return leads
+    .filter(l => (!src || l.source === src) && (!sts || l.status === sts) && l.score >= min)
+    .sort((a, b) => b.score - a.score);
+}
+
+function srcClass(s) {
+  return ({planning:'src-planning','companies-house':'src-companies-house',linkedin:'src-linkedin',twitter:'src-twitter',facebook:'src-facebook'}[s] || 'src-planning');
+}
+function srcLabel(s) {
+  return ({planning:'Planning',  'companies-house':'Companies House', linkedin:'LinkedIn', twitter:'X / Twitter', facebook:'Facebook'}[s] || s);
+}
+function pillClass(s) {
+  return ({new:'pill-new',contacted:'pill-contacted',won:'pill-won',dead:'pill-dead'}[s] || 'pill-new');
+}
+function scoreClass(n) { return n >= 75 ? 'score-high' : n >= 55 ? 'score-mid' : 'score-low'; }
+
+function cardActions(lead) {
+  if (lead.status === 'new') return `
+    <div class="actions">
+      <button class="btn btn-approve" onclick="setStatus('${lead.id}','contacted')">✓ Approve</button>
+      <button class="btn btn-reject"  onclick="setStatus('${lead.id}','dead')">✕ Reject</button>
+    </div>`;
+  if (lead.status === 'contacted') return `
+    <div class="actions">
+      <button class="btn btn-won"    onclick="setStatus('${lead.id}','won')">★ Mark Won</button>
+      <button class="btn btn-reject" onclick="setStatus('${lead.id}','dead')">✕ Close</button>
+    </div>`;
+  return `<div class="actions"><button class="btn btn-reset" onclick="setStatus('${lead.id}','new')">↩ Reset</button></div>`;
+}
+
+function cardHtml(l) {
+  const contact = l.contact ? `
+    <div class="contact-row">
+      <span class="contact-tag">Contact</span>
+      ${l.contact.director ? `<span>${l.contact.director}</span>` : ''}
+      ${l.contact.email    ? `<a class="contact-link" href="mailto:${l.contact.email}">${l.contact.email}</a>` : ''}
+      ${l.contact.website  ? `<a class="contact-link" href="https://${l.contact.website}" target="_blank" rel="noopener">${l.contact.website}</a>` : ''}
+    </div>` : '';
+  return `
+    <div class="lead-card status-${l.status}">
+      <div class="card-top">
+        <div class="card-meta">
+          <span class="src-badge ${srcClass(l.source)}">${srcLabel(l.source)}</span>
+          <span class="ref-label">${l.ref}</span>
+          <span class="status-pill ${pillClass(l.status)}">${l.status}</span>
+        </div>
+        <div class="score-badge ${scoreClass(l.score)}">${l.score} / 100</div>
+      </div>
+      <div class="lead-address">${l.address}</div>
+      <div class="lead-proposal">${l.proposal}</div>
+      <div class="flags-row">${l.flags.map(f=>`<span class="flag-pill">${f}</span>`).join('')}</div>
+      ${contact}
+      <div class="card-footer">
+        <span class="card-date">${l.date}</span>
+        ${cardActions(l)}
+      </div>
+    </div>`;
+}
+
+function renderStats() {
+  const c = {new:0, contacted:0, won:0, dead:0};
+  leads.forEach(l => { if (c[l.status] !== undefined) c[l.status]++; });
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-item stat-total"><div class="stat-number">${leads.length}</div><div class="stat-label">Total</div></div>
+    <div class="stat-item stat-new"><div class="stat-number">${c.new}</div><div class="stat-label">New</div></div>
+    <div class="stat-item stat-contacted"><div class="stat-number">${c.contacted}</div><div class="stat-label">Contacted</div></div>
+    <div class="stat-item stat-won"><div class="stat-number">${c.won}</div><div class="stat-label">Won</div></div>
+    <div class="stat-item stat-dead"><div class="stat-number">${c.dead}</div><div class="stat-label">Rejected</div></div>`;
+}
+
+function render() {
+  renderStats();
+  const list = filtered();
+  document.getElementById('resultCount').textContent = `${list.length} lead${list.length !== 1 ? 's' : ''}`;
+
+  if (!list.length) {
+    document.getElementById('leadsRoot').innerHTML = `
+      <div class="empty-state">
+        <h3>No leads match your filters</h3>
+        <p>Try adjusting the source, status or score filter above.</p>
+      </div>`;
+    return;
+  }
+
+  const srcFilter = document.getElementById('fSource').value;
+  let html = '';
+
+  if (srcFilter) {
+    html = `<div class="lead-list lead-list-end">${list.map(cardHtml).join('')}</div>`;
+  } else {
+    const groups = [
+      { label:'Planning Portals',  keys:['planning'] },
+      { label:'Companies House',   keys:['companies-house'] },
+      { label:'Social Media',      keys:['linkedin','twitter','facebook'] },
+    ];
+    groups.forEach(g => {
+      const items = list.filter(l => g.keys.includes(l.source));
+      if (!items.length) return;
+      html += `<div class="section-header">${g.label} &mdash; ${items.length}</div>
+               <div class="lead-list">${items.map(cardHtml).join('')}</div>`;
+    });
+    html += '<div class="lead-list-end"></div>';
+  }
+
+  document.getElementById('leadsRoot').innerHTML = html;
+}
+
+// Init
+document.getElementById('runInfo').textContent = 'Last run: Mon 8 Jun 2026 · 16 leads found across 5 sources';
+['fSource','fStatus','fScore'].forEach(id => document.getElementById(id).addEventListener('change', render));
+document.getElementById('clearBtn').addEventListener('click', () => {
+  document.getElementById('fSource').value  = '';
+  document.getElementById('fStatus').value  = '';
+  document.getElementById('fScore').value   = '65';
+  render();
+});
+render();
+</script>
+</body>
+</html>
