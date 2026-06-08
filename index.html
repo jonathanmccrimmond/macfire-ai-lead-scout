@@ -548,7 +548,7 @@ function computeStats(leads) {
 
   leads.forEach(l => {
     if (sc[l.status] !== undefined) sc[l.status]++;
-    if (pc[l.priority] !== undefined) pc[l.priority]++;
+    if (l.status !== 'Not Relevant' && pc[l.priority] !== undefined) pc[l.priority]++;
     const s = l.sector || 'Other';
     sectors[s] = (sectors[s] || 0) + 1;
     const scr = l.score || 0;
