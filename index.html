@@ -126,6 +126,11 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
   text-decoration:none;padding:4px 11px;border-radius:5px;font-size:11px;transition:background .15s;cursor:pointer}
 .lead-link:hover{background:var(--border)}
 .lead-link.maps{border-color:rgba(41,128,185,.5);color:#5DADE2}
+.social-links{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.social-link{background:var(--dark);border:1px solid var(--border);color:var(--text);
+  text-decoration:none;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700}
+.social-link.api{border-color:rgba(16,185,129,.45);color:#34D399}
+.social-link.manual{border-color:rgba(148,163,184,.35);color:#CBD5E1}
 .lead-action-btn{background:var(--card2);color:var(--text);border:1px solid var(--border);
   border-radius:5px;font-size:11px;padding:4px 9px;cursor:pointer}
 .lead-action-btn:hover{background:var(--border)}
@@ -586,6 +591,20 @@ function readableValue(value) {
   return String(value);
 }
 
+function parseSocialEvidence(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === 'object') return [value];
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+      if (parsed && typeof parsed === 'object') return [parsed];
+    } catch(e) {}
+  }
+  return [];
+}
+
 function normalizeLead(l) {
   const scoutDate = firstValue(l.scout_date, l.scout_run_date, l.run_date, l.created_at);
   const flags = firstValue(l.flags, l.quality_flags);
@@ -598,6 +617,7 @@ function normalizeLead(l) {
   const leadState = firstValue(l.lead_state, l.status);
   const profileStatus = firstValue(l.profile_status);
   const missingProfileFields = readableValue(firstValue(l.missing_profile_fields));
+  const socialEvidence = parseSocialEvidence(firstValue(l.social_evidence));
 
   return {
     ...l,
@@ -612,6 +632,9 @@ function normalizeLead(l) {
     lead_state: leadState,
     profile_status: profileStatus,
     missing_profile_fields: missingProfileFields,
+    social_evidence: socialEvidence,
+    social_summary: firstValue(l.social_summary),
+    social_platforms_checked: firstValue(l.social_platforms_checked),
   };
 }
 
@@ -827,6 +850,33 @@ function esc(s) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function socialLinks(l, max = 4) {
+  const evidence = parseSocialEvidence(l.social_evidence);
+  if (!evidence.length) return '';
+  const links = evidence
+    .filter(item => item && item.url)
+    .slice(0, max)
+    .map(item => {
+      const platform = esc(item.label || item.platform || 'Social');
+      const kind = String(item.kind || '').startsWith('api_') ? 'api' : 'manual';
+      return `<a class="social-link ${kind}" href="${esc(item.url)}" target="_blank" rel="noopener">${platform}</a>`;
+    })
+    .join('');
+  return links ? `<div class="social-links">${links}</div>` : '';
+}
+
+function socialEvidenceRows(l) {
+  const evidence = parseSocialEvidence(l.social_evidence);
+  if (!evidence.length) return '';
+  return evidence.slice(0, 12).map(item => {
+    const label = esc(item.label || item.platform || 'Social');
+    const kind = esc(item.kind || '');
+    const url = item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener" style="color:#5DADE2">${label}</a>` : label;
+    const snippet = item.snippet ? `<div style="color:var(--muted);font-size:11px;margin-top:2px">${esc(item.snippet)}</div>` : '';
+    return `<div class="row"><span class="k">${label}</span><span class="v">${url}${kind ? ` · ${kind}` : ''}${snippet}</span></div>`;
+  }).join('');
+}
+
 // ── Lead drawer ───────────────────────────────────────────────────────────
 function openLeadDrawer(id) {
   const l = _leads.find(x => x.id === id);
@@ -903,6 +953,13 @@ function openLeadDrawer(id) {
     </div>
 
     <div class="drawer-section">
+      <h3>Social Evidence</h3>
+      ${row('Summary', esc(l.social_summary || ''))}
+      ${row('Platforms', esc(l.social_platforms_checked || ''))}
+      ${socialEvidenceRows(l)}
+    </div>
+
+    <div class="drawer-section">
       <h3>Scout</h3>
       ${row('Trigger', esc(l.trigger || ''))}
       ${row('Reasoning', esc(l.reasoning || ''))}
@@ -972,6 +1029,9 @@ function leadCard(l) {
   const profile = l.profile_status
     ? `<div><strong>Profile:</strong> ${esc(l.profile_status.replace(/_/g, ' '))}${l.missing_profile_fields ? ` · Missing ${esc(l.missing_profile_fields)}` : ''}</div>`
     : '';
+  const social = l.social_summary
+    ? `<div><strong>Social:</strong> ${esc(l.social_summary)}</div>${socialLinks(l)}`
+    : socialLinks(l);
 
   return `
   <div class="lead-card" id="lc-${l.id}" onclick="openLeadDrawer('${l.id}')">
@@ -998,6 +1058,7 @@ function leadCard(l) {
       ${l.google_places ? `<div><strong>Google:</strong> ${esc(l.google_places)}</div>` : ''}
       ${conf}
       ${profile}
+      ${social}
       ${l.reasoning ? `<div><strong>Reason:</strong> ${esc(l.reasoning)}</div>` : ''}
     </div>
     ${flags}

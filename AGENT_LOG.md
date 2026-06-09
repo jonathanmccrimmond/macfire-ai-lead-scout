@@ -41,4 +41,4 @@ If the user returns to Lead Scout dashboard work, likely next areas are:
 - Added Instagram as a first-class social scraper support module alongside Facebook, X, and LinkedIn.
 - Instagram uses compliant Graph API routes only: hashtag recent media and business discovery for configured usernames.
 - Required env vars are `IG_ACCESS_TOKEN` and `IG_BUSINESS_ACCOUNT_ID`; optional lists are `IG_HASHTAGS` and `IG_MONITORED_USERNAMES`.
-- This still needs production pipeline wiring before Instagram evidence appears in live Supabase rows.
+- Production pipeline now has social evidence fields and the dashboard renders `social_evidence`, `social_summary`, and `social_platforms_checked` when present.

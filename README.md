@@ -24,6 +24,7 @@ Recent dashboard features already present:
 - Google Maps / Places / Street View enrichment display
 - Four-dimension confidence scoring
 - Social scraper support modules for Facebook, X, LinkedIn, and Instagram
+- Production social evidence display for `social_evidence`, `social_summary`, and checked platforms
 
 ## Files
 
