@@ -477,7 +477,7 @@ async function loadData() {
       .select('*')
       .order('score', { ascending: false });
     if (error) throw error;
-    _leads = (data || []).map(enrichLead);
+    _leads = (data || []).map(normalizeLead).map(enrichLead);
     if (_leads.length === 0) {
       showBanner('warning',
         `Connected to Supabase but no rows returned from the <strong>${table}</strong> table. ` +
@@ -517,19 +517,80 @@ function hideBanner() {
   if (el) el.remove();
 }
 
+function firstValue(...values) {
+  for (const value of values) {
+    if (value === null || value === undefined) continue;
+    if (typeof value === 'string' && value.trim() === '') continue;
+    return value;
+  }
+  return '';
+}
+
+function readableValue(value) {
+  if (value === null || value === undefined) return '';
+  if (Array.isArray(value)) return value.join(', ');
+  if (typeof value === 'object') {
+    return Object.entries(value)
+      .filter(([, v]) => v !== null && v !== undefined && v !== false && v !== '')
+      .map(([k, v]) => v === true ? k : `${k}: ${v}`)
+      .join(', ');
+  }
+  return String(value);
+}
+
+function normalizeLead(l) {
+  const scoutDate = firstValue(l.scout_date, l.scout_run_date, l.run_date, l.created_at);
+  const flags = firstValue(l.flags, l.quality_flags);
+  const director = firstValue(l.director, l.director_name);
+  const phone = firstValue(l.phone, l.phone_number);
+  const email = firstValue(l.email, l.email_address);
+  const website = firstValue(l.website, l.website_url);
+  const streetView = firstValue(l.street_view, l.streetview_url);
+  const googlePlaces = firstValue(l.google_places_result, l.google_places);
+  const leadState = firstValue(l.lead_state, l.status);
+  const profileStatus = firstValue(l.profile_status);
+  const missingProfileFields = readableValue(firstValue(l.missing_profile_fields));
+
+  return {
+    ...l,
+    scout_date: scoutDate ? String(scoutDate).slice(0, 10) : '',
+    flags,
+    director,
+    phone,
+    email,
+    website,
+    street_view: streetView,
+    google_places: googlePlaces,
+    lead_state: leadState,
+    profile_status: profileStatus,
+    missing_profile_fields: missingProfileFields,
+  };
+}
+
 // ── Enrichment (mirrors Flask logic) ─────────────────────────────────────
 function enrichLead(l) {
   let ps = 0;
   if ((l.company || '').trim())                    ps += 25;
   if ((l.sector  || '').trim())                    ps += 20;
   if ((l.postcode || l.address || '').trim())      ps += 20;
-  const roleHint = [l.director, l.trigger, l.next_action, l.flags].join(' ').toLowerCase();
+  const roleHint = [
+    l.director,
+    l.director_name,
+    l.trigger,
+    l.next_action,
+    l.flags,
+    l.owner_contact_role_needed,
+    l.profile_status,
+  ].join(' ').toLowerCase();
   if (/director|owner|founder|manager|head|contact/.test(roleHint)) ps += 15;
   const hasContact = !!(l.phone || '').trim() || !!(l.email || '').trim();
   if (hasContact) ps += 20;
 
   let queue;
-  if (ps >= 75 && hasContact) queue = 'Ready';
+  if ((l.lead_state || '').toLowerCase() === 'sales_ready') queue = 'Ready';
+  else if ((l.profile_status || '').toLowerCase() === 'minimum_profile_complete') queue = 'Ready';
+  else if (ps >= 75 && hasContact) queue = 'Ready';
+  else if ((l.missing_profile_fields || '').toString().trim()) queue = 'Research';
   else if (ps >= 45)          queue = 'Research';
   else                        queue = 'Insufficient';
 
@@ -726,6 +787,13 @@ function leadCard(l) {
   const email   = l.email ? `<a href="mailto:${esc(l.email)}" style="color:#818CF8">${esc(l.email)}</a>` : '';
   const phone   = l.phone ? esc(l.phone) : '';
   const website = l.website ? `<a href="${esc(l.website)}" target="_blank" rel="noopener" style="color:#5DADE2">${esc(l.website.replace(/^https?:\/\//,''))}</a>` : '';
+  const conf = [l.premises_confidence, l.operational_confidence, l.compliance_confidence, l.contactability_confidence]
+    .some(v => v !== null && v !== undefined && v !== '')
+    ? `<div><strong>Confidence:</strong> P ${esc(l.premises_confidence ?? '—')} · O ${esc(l.operational_confidence ?? '—')} · C ${esc(l.compliance_confidence ?? '—')} · X ${esc(l.contactability_confidence ?? '—')}</div>`
+    : '';
+  const profile = l.profile_status
+    ? `<div><strong>Profile:</strong> ${esc(l.profile_status.replace(/_/g, ' '))}${l.missing_profile_fields ? ` · Missing ${esc(l.missing_profile_fields)}` : ''}</div>`
+    : '';
 
   return `
   <div class="lead-card" id="lc-${l.id}">
@@ -749,6 +817,10 @@ function leadCard(l) {
       ${website    ? `<div><strong>Website:</strong> ${website} <span style="font-size:10px;color:var(--muted)">(${l.websiteConfidence})</span></div>` : ''}
       ${l.incorporated ? `<div><strong>Incorporated:</strong> ${esc(l.incorporated)}</div>` : ''}
       ${l.scout_date   ? `<div><strong>Scout date:</strong> ${esc(l.scout_date)}</div>`      : ''}
+      ${l.google_places ? `<div><strong>Google:</strong> ${esc(l.google_places)}</div>` : ''}
+      ${conf}
+      ${profile}
+      ${l.reasoning ? `<div><strong>Reason:</strong> ${esc(l.reasoning)}</div>` : ''}
     </div>
     ${flags}
     <div class="lead-actions">
@@ -826,7 +898,7 @@ function renderAll() {
   const st = document.getElementById('all-status-filter')?.value || '';
   const pr = document.getElementById('all-priority-filter')?.value || '';
   const filtered = _leads.filter(l => {
-    const match = !q || [l.company, l.address, l.sector, l.postcode, l.director, l.flags]
+    const match = !q || [l.company, l.address, l.sector, l.postcode, l.director, l.flags, l.profile_status, l.reasoning, l.google_places]
       .join(' ').toLowerCase().includes(q);
     return match && (!st || l.status === st) && (!pr || l.priority === pr);
   });
