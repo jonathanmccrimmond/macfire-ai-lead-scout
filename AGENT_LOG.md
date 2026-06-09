@@ -12,14 +12,13 @@ The production scraper/enrichment pipeline lives in:
 
 ### Current User Direction
 
-The user explicitly parked Lead Scout dashboard/interface work for now.
+The user has resumed AI Scout work. Active priorities are:
 
-Current active work is in Content Radar:
-
-- publish pipeline
-- improved editorial dashboard/interface
-- calendar of events/content
-- human approval before auto-posting
+- restore production parity with the original POC
+- include Facebook, X, LinkedIn, and Instagram social enrichment
+- bring planning, contact discovery, re-enrichment, outreach drafts, and dashboard visibility forward
+- keep Content Radar active in parallel
+- keep the website paused
 
 ### Existing Dashboard Direction For Later
 
@@ -35,4 +34,11 @@ If the user returns to Lead Scout dashboard work, likely next areas are:
 
 - Do not commit Supabase secrets or service-role keys.
 - Do not re-nest this repo in `macfire-production`.
-- Avoid changing live dashboard behavior unless the user asks to resume Lead Scout work.
+- Avoid committing secrets or pushing live dashboard behavior without explicit user approval.
+
+## 2026-06-09 - Social enrichment parity note
+
+- Added Instagram as a first-class social scraper support module alongside Facebook, X, and LinkedIn.
+- Instagram uses compliant Graph API routes only: hashtag recent media and business discovery for configured usernames.
+- Required env vars are `IG_ACCESS_TOKEN` and `IG_BUSINESS_ACCOUNT_ID`; optional lists are `IG_HASHTAGS` and `IG_MONITORED_USERNAMES`.
+- This still needs production pipeline wiring before Instagram evidence appears in live Supabase rows.

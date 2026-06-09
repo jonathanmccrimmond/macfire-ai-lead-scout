@@ -23,13 +23,14 @@ Recent dashboard features already present:
 - Website auto-detection signals
 - Google Maps / Places / Street View enrichment display
 - Four-dimension confidence scoring
+- Social scraper support modules for Facebook, X, LinkedIn, and Instagram
 
 ## Files
 
 - `index.html` - main static dashboard UI and client-side logic
 - `config.js.example` - example Supabase config
 - `config.js` - local/live config if present
-- `src/scrapers/social/` - social scraping experiments/support code
+- `src/scrapers/social/` - social scraping experiments/support code for Facebook, X, LinkedIn, and Instagram
 
 ## Run
 
@@ -43,16 +44,9 @@ Then open `http://localhost:4173`.
 
 ## Current Instruction From User
 
-Lead Scout dashboard/interface work is parked for now.
+AI Lead Scout is active again. The priority is to restore production parity with the original POC, including social enrichment from Facebook, X, LinkedIn, and Instagram, plus planning, contact discovery, re-enrichment, outreach drafts, and dashboard visibility.
 
-The active work has moved to Content Radar:
-
-- guarded publish pipeline
-- editorial dashboard/interface
-- calendar of events/content
-- human approval before auto-posting
-
-Do not start Lead Scout dashboard changes unless the user explicitly asks to return to it.
+The website is paused. Content Radar remains active in parallel.
 
 ## Related Repos
 
@@ -65,4 +59,4 @@ Do not start Lead Scout dashboard changes unless the user explicitly asks to ret
 - Do not move this repo back into `macfire-production`.
 - Do not commit Supabase service-role keys or private credentials.
 - Keep this dashboard client-side unless the user asks for a backend.
-- If resuming dashboard work later, start with observability, contact discovery state, planning-application signal state, and re-enrichment queue visibility.
+- Next dashboard work should start with observability, social evidence, contact discovery state, planning-application signal state, and re-enrichment queue visibility.

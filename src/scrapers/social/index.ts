@@ -1,7 +1,7 @@
 /**
  * Social media scraper entry point
  *
- * Runs all three social scrapers (X/Twitter, LinkedIn, Facebook) and returns
+ * Runs all social scrapers (X/Twitter, LinkedIn, Facebook, Instagram) and returns
  * a unified list of leads sorted by score descending.
  *
  * Called from the main pipeline after planning portal and Companies House runs.
@@ -10,6 +10,8 @@
  *   X_BEARER_TOKEN         — X / Twitter API v2 bearer token
  *   LINKEDIN_ACCESS_TOKEN  — LinkedIn OAuth 2 access token
  *   FB_ACCESS_TOKEN        — Facebook Graph API access token
+ *   IG_ACCESS_TOKEN        — Instagram Graph API access token
+ *   IG_BUSINESS_ACCOUNT_ID — Instagram Business Account ID
  */
 
 export interface LeadContact {
@@ -21,7 +23,7 @@ export interface LeadContact {
 
 export interface SocialLead {
   id:          string;
-  source:      'twitter' | 'linkedin' | 'facebook';
+  source:      'twitter' | 'linkedin' | 'facebook' | 'instagram';
   sourceLabel: string;
   address:     string;
   proposal:    string;
@@ -36,14 +38,16 @@ export interface SocialLead {
 import { scrapeTwitter }  from './twitter';
 import { scrapeLinkedIn } from './linkedin';
 import { scrapeFacebook } from './facebook';
+import { scrapeInstagram } from './instagram';
 
 export async function runSocialScrape(): Promise<SocialLead[]> {
   console.log('[social] Starting social media scrape...');
 
-  const [twitterLeads, linkedInLeads, facebookLeads] = await Promise.allSettled([
+  const [twitterLeads, linkedInLeads, facebookLeads, instagramLeads] = await Promise.allSettled([
     scrapeTwitter(),
     scrapeLinkedIn(),
     scrapeFacebook(),
+    scrapeInstagram(),
   ]);
 
   const collect = (result: PromiseSettledResult<SocialLead[]>, name: string): SocialLead[] => {
@@ -59,6 +63,7 @@ export async function runSocialScrape(): Promise<SocialLead[]> {
     ...collect(twitterLeads,  'Twitter/X'),
     ...collect(linkedInLeads, 'LinkedIn'),
     ...collect(facebookLeads, 'Facebook'),
+    ...collect(instagramLeads, 'Instagram'),
   ].sort((a, b) => b.score - a.score);
 
   console.log(`[social] Total social leads: ${all.length}`);
