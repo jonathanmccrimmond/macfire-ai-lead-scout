@@ -317,7 +317,7 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
       </div>
     </div>
     <div class="last-updated"><span class="live-dot"></span><span id="last-updated">Loading…</span></div>
-    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+    <button class="refresh-btn" onclick="refreshData()">↻ Refresh</button>
   </div>
 </div>
 
@@ -518,9 +518,128 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
 <script>
 // ── Config ──────────────────────────────────────────────────────────────────
 const CONFIG_KEY = 'macfire_supabase_cfg';
+const VISITOR_KEY = 'macfire_analytics_visitor_id';
+const SESSION_KEY = 'macfire_analytics_session_id';
+const SESSION_STARTED_KEY = 'macfire_analytics_session_started_at';
+const ANALYTICS = {
+  clientId: 'macfire',
+  dashboardId: 'ai-lead-scout',
+  table: 'dashboard_events'
+};
 let _sb = null;
 let _leads = [];
 let _charts = {};
+let _analyticsReady = false;
+let _filterTrackTimer = null;
+
+function stableUuid(storage, key) {
+  let value = storage.getItem(key);
+  if (!value) {
+    value = window.crypto?.randomUUID ? window.crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+    storage.setItem(key, value);
+  }
+  return value;
+}
+
+function visitorId() {
+  return stableUuid(localStorage, VISITOR_KEY);
+}
+
+function sessionId() {
+  const id = stableUuid(sessionStorage, SESSION_KEY);
+  if (!sessionStorage.getItem(SESSION_STARTED_KEY)) {
+    sessionStorage.setItem(SESSION_STARTED_KEY, new Date().toISOString());
+  }
+  return id;
+}
+
+function compactLeadMeta(lead) {
+  if (!lead) return {};
+  return {
+    lead_id: lead.id || null,
+    company: lead.company || null,
+    priority: lead.priority || null,
+    score: lead.score || null,
+    status: lead.status || null,
+    queue: lead.enrichmentQueue || null
+  };
+}
+
+async function trackEvent(eventName, metadata = {}) {
+  if (!_sb || !_analyticsReady) return;
+  const payload = {
+    client_id: ANALYTICS.clientId,
+    dashboard_id: ANALYTICS.dashboardId,
+    event_name: eventName,
+    visitor_id: visitorId(),
+    session_id: sessionId(),
+    page_path: `${location.pathname}${location.search}`,
+    page_title: document.title,
+    referrer: document.referrer || null,
+    user_agent: navigator.userAgent,
+    language: navigator.language || null,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
+    screen_width: window.screen?.width || null,
+    screen_height: window.screen?.height || null,
+    viewport_width: window.innerWidth,
+    viewport_height: window.innerHeight,
+    metadata
+  };
+
+  try {
+    const { error } = await _sb.from(ANALYTICS.table).insert(payload);
+    if (error) {
+      _analyticsReady = false;
+      console.warn('Analytics disabled:', error.message || error);
+    }
+  } catch (e) {
+    _analyticsReady = false;
+    console.warn('Analytics disabled:', e.message || e);
+  }
+}
+
+function trackFilterChange() {
+  clearTimeout(_filterTrackTimer);
+  _filterTrackTimer = setTimeout(() => {
+    trackEvent('filters_changed', {
+      search_present: !!(document.getElementById('search-input')?.value || '').trim(),
+      status: document.getElementById('all-status-filter')?.value || null,
+      priority: document.getElementById('all-priority-filter')?.value || null
+    });
+  }, 700);
+}
+
+function bindAnalyticsInteractions() {
+  document.addEventListener('click', event => {
+    const tab = event.target.closest('.tab-btn');
+    if (tab) {
+      trackEvent('tab_viewed', { tab: tab.dataset.tab || null });
+      return;
+    }
+
+    const tracked = event.target.closest('[data-analytics-event]');
+    if (!tracked) return;
+    const lead = _leads.find(l => String(l.id) === String(tracked.dataset.leadId));
+    trackEvent(tracked.dataset.analyticsEvent, {
+      ...compactLeadMeta(lead),
+      label: tracked.textContent.trim() || null,
+      href: tracked.getAttribute('href') || null
+    });
+  });
+
+  ['search-input', 'all-status-filter', 'all-priority-filter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(id === 'search-input' ? 'input' : 'change', trackFilterChange);
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') trackEvent('page_hidden');
+  });
+}
 
 function getConfig() {
   // Prefer hard-coded config.js, fall back to localStorage
@@ -568,6 +687,8 @@ function init() {
   hideSetup();
   applyFiltersFromUrl();
   _sb = supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey);
+  _analyticsReady = true;
+  trackEvent('dashboard_opened', { source: 'supabase' });
   loadData();
 }
 
@@ -592,6 +713,7 @@ async function loadData() {
       hideBanner();
     }
     renderAll_data();
+    trackEvent('dashboard_loaded', { lead_count: _leads.length, table });
     document.getElementById('last-updated').textContent =
       new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     // Auto-open drawer if ?lead= present in URL (shareable links)
@@ -602,6 +724,11 @@ async function loadData() {
     document.getElementById('last-updated').textContent = 'Error';
     showBanner('error', `Supabase error: <strong>${e.message || e}</strong>. Check the URL and key in config.js, or click ⚙ Config to update them.`);
   }
+}
+
+function refreshData() {
+  trackEvent('dashboard_refreshed', { source: 'supabase' });
+  loadData();
 }
 
 function showBanner(type, html) {
@@ -900,6 +1027,7 @@ function esc(s) {
 function openLeadDrawer(id) {
   const l = _leads.find(x => x.id === id);
   if (!l) return;
+  trackEvent('lead_drawer_opened', compactLeadMeta(l));
 
   const sv = l.streetview_url || l.street_view || '';
   const svBlock = sv
@@ -908,10 +1036,10 @@ function openLeadDrawer(id) {
 
   const row = (k, v) => v === null || v === undefined || v === '' || v === false
     ? '' : `<div class="row"><span class="k">${esc(k)}</span><span class="v">${v}</span></div>`;
-  const link = (url, label) => url ? `<a href="${esc(url)}" target="_blank" rel="noopener" style="color:#5DADE2">${esc(label || url)}</a>` : '';
+  const link = (url, label, eventName = 'lead_external_link_opened') => url ? `<a href="${esc(url)}" target="_blank" rel="noopener" style="color:#5DADE2" data-analytics-event="${eventName}" data-lead-id="${esc(l.id)}">${esc(label || url)}</a>` : '';
 
   const websiteLine = l.website_url || l.website
-    ? link(l.website_url || l.website, (l.website_url || l.website).replace(/^https?:\/\//, ''))
+    ? link(l.website_url || l.website, (l.website_url || l.website).replace(/^https?:\/\//, ''), 'lead_website_opened')
     : '';
   const dirAppts = l.director_total_appointments !== null && l.director_total_appointments !== undefined
     ? `${l.director_total_appointments} prior appt${l.director_total_appointments === 1 ? '' : 's'}` +
@@ -933,8 +1061,8 @@ function openLeadDrawer(id) {
       <h3>Location</h3>
       ${row('Address', esc(l.address || ''))}
       ${row('Postcode', esc(l.postcode || ''))}
-      ${row('Maps', link(l.maps_url, 'Open in Google Maps'))}
-      ${row('Street View', link(sv, 'Full-size Street View'))}
+      ${row('Maps', link(l.maps_url, 'Open in Google Maps', 'lead_maps_opened'))}
+      ${row('Street View', link(sv, 'Full-size Street View', 'lead_street_view_opened'))}
       ${row('Google Places', esc(l.google_places || ''))}
     </div>
 
@@ -962,7 +1090,7 @@ function openLeadDrawer(id) {
     <div class="drawer-section">
       <h3>Contact &amp; Web</h3>
       ${row('Phone', esc(l.phone || l.phone_number || ''))}
-      ${row('Email', l.email || l.email_address ? `<a href="mailto:${esc(l.email || l.email_address)}" style="color:#818CF8">${esc(l.email || l.email_address)}</a>` : '')}
+      ${row('Email', l.email || l.email_address ? `<a href="mailto:${esc(l.email || l.email_address)}" style="color:#818CF8" data-analytics-event="lead_email_clicked" data-lead-id="${esc(l.id)}">${esc(l.email || l.email_address)}</a>` : '')}
       ${row('Website', websiteLine)}
       ${row('Page title', esc(l.web_title || ''))}
       ${row('H1', esc(l.web_h1 || ''))}
@@ -1178,11 +1306,11 @@ document.addEventListener('click', (ev) => {
 function leadCard(l) {
   const score   = l.score ? `<span class="lead-score ${scoreClass(l.score)}">${l.score}</span>` : '';
   const flags   = l.flags ? `<div class="flags-text" title="${esc(l.flags)}">⚑ ${esc(l.flags)}</div>` : '';
-  const maps    = l.maps_url    ? `<a class="lead-link maps" href="${esc(l.maps_url)}" target="_blank" rel="noopener">📍 Maps</a>` : '';
-  const sv      = l.street_view ? `<a class="lead-link" href="${esc(l.street_view)}" target="_blank" rel="noopener">📷 Street</a>` : '';
-  const email   = l.email ? `<a href="mailto:${esc(l.email)}" style="color:#818CF8">${esc(l.email)}</a>` : '';
+  const maps    = l.maps_url    ? `<a class="lead-link maps" href="${esc(l.maps_url)}" target="_blank" rel="noopener" data-analytics-event="lead_maps_opened" data-lead-id="${esc(l.id)}">📍 Maps</a>` : '';
+  const sv      = l.street_view ? `<a class="lead-link" href="${esc(l.street_view)}" target="_blank" rel="noopener" data-analytics-event="lead_street_view_opened" data-lead-id="${esc(l.id)}">📷 Street</a>` : '';
+  const email   = l.email ? `<a href="mailto:${esc(l.email)}" style="color:#818CF8" data-analytics-event="lead_email_clicked" data-lead-id="${esc(l.id)}">${esc(l.email)}</a>` : '';
   const phone   = l.phone ? esc(l.phone) : '';
-  const website = l.website ? `<a href="${esc(l.website)}" target="_blank" rel="noopener" style="color:#5DADE2">${esc(l.website.replace(/^https?:\/\//,''))}</a>` : '';
+  const website = l.website ? `<a href="${esc(l.website)}" target="_blank" rel="noopener" style="color:#5DADE2" data-analytics-event="lead_website_opened" data-lead-id="${esc(l.id)}">${esc(l.website.replace(/^https?:\/\//,''))}</a>` : '';
   const conf = [l.premises_confidence, l.operational_confidence, l.compliance_confidence, l.contactability_confidence]
     .some(v => v !== null && v !== undefined && v !== '')
     ? `<div><strong>Confidence:</strong> P ${esc(l.premises_confidence ?? '—')} · O ${esc(l.operational_confidence ?? '—')} · C ${esc(l.compliance_confidence ?? '—')} · X ${esc(l.contactability_confidence ?? '—')}</div>`
@@ -1238,6 +1366,12 @@ async function updateStatus(id, newStatus) {
   try {
     const { error } = await _sb.from(table).update({ status: newStatus }).eq('id', id);
     if (error) throw error;
+    const previous = _leads.find(l => l.id === id);
+    trackEvent('lead_status_updated', {
+      ...compactLeadMeta(previous),
+      from_status: previous?.status || null,
+      to_status: newStatus
+    });
     _leads = _leads.map(l => l.id === id ? enrichLead({ ...l, status: newStatus }) : l);
     renderAll_data();
   } catch(e) {
@@ -1343,7 +1477,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 // ── Start ──────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+  bindAnalyticsInteractions();
+  init();
+});
 </script>
 </body>
 </html>
