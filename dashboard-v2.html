@@ -474,12 +474,6 @@ a{color:inherit;text-decoration:none}
 .modal-actions .confirm-btn{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
 .modal-actions .confirm-btn:hover{background:var(--brand-deep);border-color:var(--brand-deep)}
 
-/* === Charts section header ============================================= */
-.charts-heading{
-  font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;
-  letter-spacing:.07em;margin:36px 0 16px;padding-bottom:12px;
-  border-bottom:1px solid var(--line);
-}
 </style>
 </head>
 <body>
@@ -604,6 +598,28 @@ a{color:inherit;text-decoration:none}
     </div>
   </div>
 
+  <!-- Pipeline and analytics -->
+  <div class="grid-2-1">
+    <div class="panel">
+      <h3>Pipeline status</h3>
+      <div id="pipeline-container"><div class="loading">Loading</div></div>
+    </div>
+    <div class="panel">
+      <h3>Priority split</h3>
+      <div class="chart-wrap"><canvas id="priorityChart"></canvas></div>
+    </div>
+  </div>
+  <div class="grid-charts">
+    <div class="panel">
+      <h3>Leads by sector</h3>
+      <div class="chart-wrap"><canvas id="sectorChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h3>Score distribution</h3>
+      <div class="chart-wrap"><canvas id="scoreChart"></canvas></div>
+    </div>
+  </div>
+
   <!-- Tabs -->
   <nav class="tabs">
     <button class="tab-btn active" data-tab="qualified">Qualified<span class="tab-count" id="tc-qualified">0</span></button>
@@ -703,29 +719,6 @@ a{color:inherit;text-decoration:none}
     <div class="lead-list" id="not-relevant-container"><div class="loading">Loading</div></div>
   </div>
 
-  <!-- Analytics always visible below tabs -->
-  <p class="charts-heading">Pipeline and analytics</p>
-
-  <div class="grid-2-1">
-    <div class="panel">
-      <h3>Pipeline status</h3>
-      <div id="pipeline-container"><div class="loading">Loading</div></div>
-    </div>
-    <div class="panel">
-      <h3>Priority split</h3>
-      <div class="chart-wrap"><canvas id="priorityChart"></canvas></div>
-    </div>
-  </div>
-  <div class="grid-charts">
-    <div class="panel">
-      <h3>Leads by sector</h3>
-      <div class="chart-wrap"><canvas id="sectorChart"></canvas></div>
-    </div>
-    <div class="panel">
-      <h3>Score distribution</h3>
-      <div class="chart-wrap"><canvas id="scoreChart"></canvas></div>
-    </div>
-  </div>
 
 </main>
 </div>
