@@ -553,14 +553,14 @@ a{color:inherit;text-decoration:none}
   <!-- Primary KPI cards -->
   <div class="grid-stats">
     <div class="stat-card c-brand">
-      <div class="label">Qualified and ready</div>
-      <div class="value num" id="kpi-ready">—</div>
-      <div class="sub">Ready to contact now</div>
-    </div>
-    <div class="stat-card c-amber">
       <div class="label">High priority</div>
       <div class="value num" id="kpi-high">—</div>
       <div class="sub">Score 75 or higher</div>
+    </div>
+    <div class="stat-card c-amber">
+      <div class="label">Qualified and ready</div>
+      <div class="value num" id="kpi-ready">—</div>
+      <div class="sub">Ready to contact now</div>
     </div>
     <div class="stat-card c-ok">
       <div class="label">Meetings booked</div>
@@ -1072,7 +1072,8 @@ function renderAll_data() {
     document.getElementById('run-banner').classList.add('visible');
   }
 
-  const qLeads  = _leads.filter(l => l.priority==='High' && l.enrichmentQueue==='Ready' && l.status!=='Not Relevant');
+  const active  = _leads.filter(l => l.status !== 'Not Relevant');
+  const qLeads  = [...active.filter(l => l.priority==='High'), ...active.filter(l => l.priority!=='High' && l.enrichmentQueue==='Ready')].slice(0,30);
   const cnLeads = _leads.filter(l => l.priority==='High' && l.enrichmentQueue==='Research' && l.status!=='Not Relevant');
   const reLeads = [..._leads].filter(l => l.scout_date && l.status!=='Not Relevant')
     .sort((a,b)=>(b.scout_date||'').localeCompare(a.scout_date||'')||(b.score||0)-(a.score||0)).slice(0,20);
@@ -1203,8 +1204,8 @@ function statusBadge(s) {
   return `<span class="badge ${cls}">${s || 'Unknown'}</span>`;
 }
 function queueBadge(q) {
-  if (q === 'Ready')    return `<span class="badge b-ready">Ready</span>`;
-  if (q === 'Research') return `<span class="badge b-attention">Research</span>`;
+  if (q === 'Ready')    return `<span class="badge b-attention">Ready</span>`;
+  if (q === 'Research') return `<span class="badge b-plain">Research</span>`;
   return `<span class="badge b-plain">Needs data</span>`;
 }
 function esc(s) {
@@ -1545,9 +1546,12 @@ async function updateStatus(id, newStatus, notes) {
 
 // === Render sections =====================================================
 function renderQualified() {
-  const leads = _leads.filter(l => l.priority==='High' && l.enrichmentQueue==='Ready' && l.status!=='Not Relevant');
+  const active = _leads.filter(l => l.status !== 'Not Relevant');
+  const high   = active.filter(l => l.priority === 'High').sort((a,b) => (b.score||0)-(a.score||0));
+  const ready  = active.filter(l => l.priority !== 'High' && l.enrichmentQueue === 'Ready').sort((a,b) => (b.score||0)-(a.score||0));
+  const leads  = [...high, ...ready].slice(0, 30);
   document.getElementById('qualified-container').innerHTML = leads.length
-    ? leads.slice(0,20).map(leadCard).join('')
+    ? leads.map(leadCard).join('')
     : '<div class="empty">No qualified leads yet.</div>';
 }
 function renderContactNeeded() {
