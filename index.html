@@ -206,6 +206,27 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
 .lead-card{cursor:pointer}
 .lead-card .lead-link,.lead-card .lead-action-btn{cursor:pointer}
 
+/* ── Not Relevant notes modal ─────────────────────────────────── */
+#nr-modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);
+  z-index:200;align-items:center;justify-content:center}
+#nr-modal-backdrop.open{display:flex}
+#nr-modal{background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:24px;width:460px;max-width:92vw}
+#nr-modal h3{font-size:15px;margin-bottom:4px}
+#nr-modal p{font-size:12px;color:var(--muted);margin-bottom:14px}
+#nr-modal textarea{width:100%;min-height:90px;background:var(--dark);
+  border:1px solid var(--border);border-radius:6px;color:var(--text);
+  font-family:inherit;font-size:13px;padding:10px;resize:vertical}
+#nr-modal textarea:focus{outline:none;border-color:var(--indigo)}
+#nr-modal .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+#nr-modal .modal-actions button{padding:7px 16px;border-radius:6px;font-size:13px;
+  cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text)}
+#nr-modal .modal-actions button:hover{background:var(--card2)}
+#nr-modal .modal-actions .confirm-btn{background:var(--accent);border-color:var(--accent);color:#fff}
+#nr-modal .modal-actions .confirm-btn:hover{background:var(--accent2)}
+.nr-notes-snippet{color:var(--muted);font-size:11px;font-style:italic;
+  margin-top:6px;padding-top:6px;border-top:1px solid var(--border);line-height:1.4}
+
 /* ── Tabs ─────────────────────────────────────────────────────── */
 .tabs{display:flex;gap:0;margin-bottom:18px;border-bottom:1px solid var(--border)}
 .tab-btn{background:none;border:none;border-bottom:2px solid transparent;
@@ -514,6 +535,19 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
   <button class="drawer-close" onclick="closeLeadDrawer()">✕</button>
   <div id="drawer-body"></div>
 </aside>
+
+<!-- ── Not Relevant notes modal ───────────────────────────────── -->
+<div id="nr-modal-backdrop" onclick="if(event.target===this)closeNrModal()">
+  <div id="nr-modal">
+    <h3>Mark as Not Relevant</h3>
+    <p>Add a note so the AI can learn from this decision (optional).</p>
+    <textarea id="nr-modal-textarea" placeholder="e.g. Already a customer, wrong sector, too small..."></textarea>
+    <div class="modal-actions">
+      <button onclick="closeNrModal()">Cancel</button>
+      <button class="confirm-btn" onclick="submitNotRelevant()">Confirm</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ── Config ──────────────────────────────────────────────────────────────────
@@ -1107,6 +1141,12 @@ function openLeadDrawer(id) {
       ${row('Scout date', esc(l.scout_date || ''))}
       ${row('Source', esc(l.source || ''))}
     </div>
+
+    ${l.relevance_notes ? `
+    <div class="drawer-section">
+      <h3>Your Notes</h3>
+      <div style="font-size:13px;line-height:1.55;color:var(--text)">${esc(l.relevance_notes)}</div>
+    </div>` : ''}
   `;
   document.getElementById('lead-drawer').classList.add('open');
   document.getElementById('drawer-backdrop').classList.add('open');
@@ -1345,6 +1385,7 @@ function leadCard(l) {
       ${conf}
       ${profile}
       ${l.reasoning ? `<div><strong>Reason:</strong> ${esc(l.reasoning)}</div>` : ''}
+      ${l.relevance_notes ? `<div class="nr-notes-snippet">Notes: ${esc(l.relevance_notes)}</div>` : ''}
     </div>
     ${flags}
     <div class="lead-actions" onclick="event.stopPropagation()">
@@ -1352,19 +1393,40 @@ function leadCard(l) {
       ${l.status !== 'Meeting Booked' ? `<button class="lead-action-btn" style="border-color:rgba(125,60,152,.4);color:#A569BD" onclick="updateStatus('${l.id}','Meeting Booked')">Meeting Booked</button>` : ''}
       ${l.status === 'Not Relevant'
         ? `<button class="lead-action-btn" style="border-color:rgba(99,102,241,.45);color:#A5B4FC" onclick="updateStatus('${l.id}','New Lead')">Add back to queue</button>`
-        : `<button class="lead-action-btn notrel-btn" onclick="updateStatus('${l.id}','Not Relevant')">Not Relevant</button>`}
+        : `<button class="lead-action-btn notrel-btn" onclick="markNotRelevant('${l.id}')">Not Relevant</button>`}
     </div>
   </div>`;
 }
 
+// ── Not Relevant modal ────────────────────────────────────────────────────
+let _nrPendingId = null;
+function markNotRelevant(id) {
+  _nrPendingId = id;
+  document.getElementById('nr-modal-textarea').value = '';
+  document.getElementById('nr-modal-backdrop').classList.add('open');
+  setTimeout(() => document.getElementById('nr-modal-textarea').focus(), 50);
+}
+function closeNrModal() {
+  _nrPendingId = null;
+  document.getElementById('nr-modal-backdrop').classList.remove('open');
+}
+async function submitNotRelevant() {
+  const notes = document.getElementById('nr-modal-textarea').value.trim();
+  const id = _nrPendingId;
+  closeNrModal();
+  if (id) await updateStatus(id, 'Not Relevant', notes || null);
+}
+
 // ── Status update ─────────────────────────────────────────────────────────
-async function updateStatus(id, newStatus) {
+async function updateStatus(id, newStatus, notes) {
   const cfg   = getConfig();
   const table = cfg?.table || 'leads';
   const btns  = document.querySelectorAll(`#lc-${id} button`);
   btns.forEach(b => b.disabled = true);
   try {
-    const { error } = await _sb.from(table).update({ status: newStatus }).eq('id', id);
+    const update = { status: newStatus };
+    if (newStatus === 'Not Relevant') update.relevance_notes = notes ?? null;
+    const { error } = await _sb.from(table).update(update).eq('id', id);
     if (error) throw error;
     const previous = _leads.find(l => l.id === id);
     trackEvent('lead_status_updated', {
@@ -1372,7 +1434,9 @@ async function updateStatus(id, newStatus) {
       from_status: previous?.status || null,
       to_status: newStatus
     });
-    _leads = _leads.map(l => l.id === id ? enrichLead({ ...l, status: newStatus }) : l);
+    const patch = { status: newStatus };
+    if (newStatus === 'Not Relevant') patch.relevance_notes = notes ?? null;
+    _leads = _leads.map(l => l.id === id ? enrichLead({ ...l, ...patch }) : l);
     renderAll_data();
   } catch(e) {
     console.error('Status update failed:', e);
