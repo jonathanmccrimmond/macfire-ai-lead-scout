@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MacFire AI Scout — Lead Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="config.js" onerror="window.__configMissing=true"></script>
+<style>
+/* === Design tokens ===================================================== */
+:root {
+  --bg:        #F6F6F7;
+  --surface:   #FFFFFF;
+  --surface-2: #FAFAFB;
+  --ink:       #1B1B1F;
+  --muted:     #6C6C75;
+  --faint:     #9A9AA3;
+  --line:      #E7E7EB;
+  --line-soft: #F0F0F3;
+  --brand:     #C31E1F;
+  --brand-deep:#9B1718;
+  --brand-tint:#FBF1F1;
+  --ok:        #1E7A4C;
+  --ok-tint:   #EDF7F1;
+  --warn:      #9A6700;
+  --warn-tint: #FCF6EA;
+  --radius:    12px;
+  --radius-sm: 8px;
+  --shadow:    0 1px 2px rgba(27,27,31,.04), 0 4px 16px rgba(27,27,31,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:14px;line-height:1.5;min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+.num{font-variant-numeric:tabular-nums}
+
+/* === Setup screen ====================================================== */
+#setup-screen{
+  display:none;position:fixed;inset:0;background:var(--bg);
+  z-index:999;align-items:center;justify-content:center;
+}
+#setup-screen.open{display:flex}
+.setup-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:40px 44px;max-width:480px;width:calc(100% - 32px);box-shadow:var(--shadow);
+}
+.setup-logo{display:flex;align-items:stretch;border-radius:6px;overflow:hidden;margin-bottom:28px;box-shadow:0 1px 3px rgba(27,27,31,.12)}
+.setup-logo span:first-child{background:#fff;color:#1B1B1F;font-weight:800;font-size:16px;padding:7px 12px;border:1px solid var(--line);border-right:none;border-radius:6px 0 0 6px}
+.setup-logo span:last-child{background:var(--brand);color:#fff;font-weight:800;font-size:16px;padding:7px 12px;border-radius:0 6px 6px 0}
+.setup-card h2{font-size:20px;font-weight:700;margin-bottom:6px}
+.setup-card > p{color:var(--muted);font-size:13px;margin-bottom:28px;line-height:1.55}
+.field-group{display:flex;flex-direction:column;gap:6px;margin-bottom:18px}
+.field-group label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.field-group input{
+  background:var(--surface-2);border:1px solid var(--line);color:var(--ink);
+  font-size:13px;padding:9px 13px;border-radius:var(--radius-sm);outline:none;
+  font-family:inherit;width:100%;
+}
+.field-group input:focus{border-color:var(--brand)}
+.setup-btn{
+  background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);
+  font-size:14px;font-weight:600;padding:11px;width:100%;cursor:pointer;
+  transition:background .15s;font-family:inherit;
+}
+.setup-btn:hover{background:var(--brand-deep)}
+.setup-error{color:var(--brand);font-size:12px;margin-top:-10px;margin-bottom:10px;display:none}
+
+/* === Main ============================================================== */
+#main{display:none}
+
+/* === Header ============================================================ */
+.header{
+  background:rgba(255,255,255,.86);backdrop-filter:saturate(1.4) blur(14px);
+  border-bottom:1px solid var(--line);padding:12px 28px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.header-left{display:flex;align-items:center;gap:14px;min-width:0}
+.logo-lockup{display:flex;align-items:stretch;border-radius:6px;overflow:hidden;flex:0 0 auto;box-shadow:0 1px 3px rgba(27,27,31,.12)}
+.logo-light{background:#fff;color:#1B1B1F;font-size:13px;font-weight:800;padding:6px 10px;border:1px solid var(--line);border-right:none;border-radius:6px 0 0 6px}
+.logo-dark{background:var(--brand);color:#fff;font-size:13px;font-weight:800;padding:6px 10px;border-radius:0 6px 6px 0}
+.hdr-title{font-size:15px;font-weight:650;letter-spacing:-.01em}
+.hdr-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.header-right{display:flex;align-items:center;gap:12px}
+.last-updated{color:var(--muted);font-size:12px;display:flex;align-items:center;gap:6px}
+.live-dot{width:7px;height:7px;background:var(--ok);border-radius:50%;display:inline-block;flex-shrink:0;animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@media(prefers-reduced-motion:reduce){.live-dot{animation:none}}
+.btn{
+  background:var(--surface);border:1px solid var(--line);color:var(--ink);
+  padding:7px 14px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;
+  font-weight:550;font-family:inherit;transition:border-color .15s,background .15s;
+}
+.btn:hover{border-color:#C9C9D2;background:var(--surface-2)}
+.btn-cfg{
+  background:none;border:1px solid var(--line);color:var(--muted);
+  padding:5px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;
+  font-family:inherit;transition:border-color .15s,color .15s;
+}
+.btn-cfg:hover{color:var(--ink);border-color:#C9C9D2}
+
+/* === Layout ============================================================ */
+.container{max-width:1280px;margin:0 auto;padding:28px}
+@media(max-width:700px){.container{padding:18px 14px}.header{padding:10px 14px}}
+
+/* === Data banner ======================================================= */
+.data-banner{border-radius:var(--radius-sm);padding:12px 16px;font-size:13px;line-height:1.55;margin-bottom:20px;display:none}
+
+/* === Run banner ======================================================== */
+.run-banner{
+  display:none;align-items:center;gap:10px;flex-wrap:wrap;
+  color:var(--muted);font-size:13px;margin-bottom:22px;
+}
+.run-banner.visible{display:flex}
+.run-banner strong{color:var(--ink);font-weight:600}
+.run-chip{
+  display:inline-flex;align-items:center;
+  background:var(--surface);border:1px solid var(--line);border-radius:999px;
+  padding:4px 12px;font-size:12px;font-weight:550;color:var(--ink);
+}
+
+/* === Stat cards ======================================================== */
+.grid-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
+@media(max-width:1000px){.grid-stats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.grid-stats{grid-template-columns:repeat(2,1fr);gap:10px}}
+.stat-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 20px;box-shadow:var(--shadow);
+}
+.stat-card .label{color:var(--muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.stat-card .value{font-size:32px;font-weight:650;line-height:1;letter-spacing:-.02em;margin-bottom:6px}
+.stat-card .sub{color:var(--muted);font-size:12px}
+.stat-strip{
+  display:flex;gap:24px;flex-wrap:wrap;align-items:center;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:13px 20px;margin-bottom:28px;box-shadow:var(--shadow);
+}
+.strip-item{display:flex;align-items:baseline;gap:8px;font-size:13px;color:var(--muted)}
+.strip-item b{font-size:16px;font-weight:650;color:var(--ink)}
+.strip-divider{width:1px;height:18px;background:var(--line);align-self:center}
+@media(max-width:700px){.strip-divider{display:none}.stat-strip{gap:14px 20px}}
+
+/* === Tabs ============================================================== */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);overflow-x:auto;margin-bottom:20px}
+.tab-btn{
+  background:none;border:none;border-bottom:2px solid transparent;
+  color:var(--muted);font-size:13.5px;font-weight:550;padding:10px 16px;cursor:pointer;
+  margin-bottom:-1px;transition:color .15s;white-space:nowrap;font-family:inherit;
+}
+.tab-btn:hover{color:var(--ink)}
+.tab-btn.active{color:var(--brand);border-bottom-color:var(--brand);font-weight:650}
+.tab-count{
+  display:inline-block;margin-left:7px;font-size:11px;font-weight:650;
+  background:var(--line-soft);color:var(--muted);border-radius:999px;padding:1px 8px;
+}
+.tab-btn.active .tab-count{background:var(--brand-tint);color:var(--brand)}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+/* === Toolbar =========================================================== */
+.toolbar{
+  display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:10px 14px;position:sticky;top:60px;z-index:20;
+  box-shadow:0 2px 8px rgba(27,27,31,.04);
+}
+.toolbar input{
+  background:var(--surface-2);border:1px solid var(--line);color:var(--ink);
+  font-size:13px;padding:7px 11px;border-radius:var(--radius-sm);outline:none;
+  font-family:inherit;min-width:180px;flex:1;
+}
+.toolbar input:focus{border-color:var(--brand)}
+.select{
+  appearance:none;
+  background:var(--surface-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236C6C75' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;
+  border:1px solid var(--line);color:var(--ink);border-radius:var(--radius-sm);
+  font-size:13px;font-family:inherit;padding:7px 30px 7px 11px;cursor:pointer;outline:none;
+}
+.select:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.toolbar-count{flex:1;font-size:12px;color:var(--muted);min-width:0}
+.link-quiet{
+  background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;
+  font-family:inherit;text-decoration:underline;text-underline-offset:3px;
+  text-decoration-color:var(--line);white-space:nowrap;
+}
+.link-quiet:hover{color:var(--ink)}
+
+/* === Sector chips ====================================================== */
+.chip-strip{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;align-items:center}
+.chip-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-right:4px}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--surface);border:1px solid var(--line);color:var(--muted);
+  font-size:11px;padding:4px 11px;border-radius:999px;cursor:pointer;
+  transition:border-color .12s,color .12s;white-space:nowrap;
+}
+.chip:hover{border-color:#C9C9D2;color:var(--ink)}
+.chip .chip-count{color:var(--faint);font-size:10px}
+.chip.active{background:var(--brand-tint);border-color:var(--brand);color:var(--brand)}
+.chip.active .chip-count{color:var(--brand)}
+
+/* === Saved views ======================================================= */
+.views-wrap{position:relative;display:inline-block}
+.views-menu{
+  position:absolute;top:calc(100% + 6px);right:0;min-width:240px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);
+  box-shadow:0 8px 24px rgba(27,27,31,.12);padding:6px;display:none;z-index:30;
+}
+.views-menu.open{display:block}
+.vm-item{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:6px;cursor:pointer;font-size:12px;gap:8px}
+.vm-item:hover{background:var(--surface-2)}
+.vm-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.vm-del{background:none;border:none;color:var(--faint);font-size:14px;cursor:pointer;padding:0 4px;line-height:1}
+.vm-del:hover{color:var(--brand)}
+.vm-empty{padding:14px 10px;color:var(--muted);font-size:11px;text-align:center}
+.vm-divider{height:1px;background:var(--line);margin:4px 0}
+.vm-save{padding:7px 10px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--brand);font-weight:600}
+.vm-save:hover{background:var(--brand-tint)}
+
+/* === Section headers =================================================== */
+.section-header{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 16px;gap:12px;flex-wrap:wrap}
+.section-title{font-size:17px;font-weight:650;letter-spacing:-.01em}
+.section-meta{font-size:12.5px;color:var(--muted)}
+
+/* === Badges ============================================================ */
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;
+  background:var(--line-soft);color:var(--muted);
+}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--faint)}
+.badge.b-priority{background:var(--brand-tint);color:var(--brand-deep)}
+.badge.b-priority::before{background:var(--brand)}
+.badge.b-ready{background:var(--ok-tint);color:var(--ok)}
+.badge.b-ready::before{background:var(--ok)}
+.badge.b-attention{background:var(--warn-tint);color:var(--warn)}
+.badge.b-attention::before{background:var(--warn)}
+.badge.b-plain{background:var(--line-soft);color:var(--muted)}
+.badge.b-plain::before{display:none}
+.badge.b-none{display:none}
+
+/* === Score bar ========================================================= */
+.score{display:inline-flex;align-items:center;gap:8px;flex-shrink:0}
+.score .score-num{font-size:13px;font-weight:650;font-variant-numeric:tabular-nums;min-width:2ch;text-align:right}
+.score .score-track{width:52px;height:4px;border-radius:999px;background:var(--line);overflow:hidden}
+.score .score-fill{height:100%;border-radius:999px;background:var(--brand)}
+.score.s-mid .score-fill{background:#D98A8A}
+.score.s-low .score-fill{background:#C9C9D2}
+
+/* === Lead cards ======================================================== */
+.lead-list{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.lead-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px 20px;box-shadow:var(--shadow);cursor:pointer;
+  transition:border-color .15s;
+}
+.lead-card:hover{border-color:#D5D5DC}
+.lead-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.lead-name{font-size:15px;font-weight:650;letter-spacing:-.01em;margin-bottom:6px}
+.lead-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
+.lead-detail{color:var(--muted);font-size:13px;line-height:1.55}
+.lead-detail strong{color:var(--ink);font-weight:600}
+.lead-detail > div{margin-bottom:1px}
+.nr-notes-snippet{font-size:12px;color:var(--faint);font-style:italic;margin-top:6px;padding-top:6px;border-top:1px solid var(--line-soft)}
+.lead-actions{display:flex;gap:7px;margin-top:12px;flex-wrap:wrap}
+.btn-sm{
+  background:var(--surface);border:1px solid var(--line);color:var(--ink);
+  border-radius:var(--radius-sm);font-size:12px;font-weight:550;padding:5px 12px;
+  cursor:pointer;font-family:inherit;transition:border-color .15s,background .15s;
+  display:inline-flex;align-items:center;text-decoration:none;
+}
+.btn-sm:hover{border-color:#C9C9D2;background:var(--surface-2)}
+.btn-sm.btn-ok{border-color:rgba(30,122,76,.3);color:var(--ok)}
+.btn-sm.btn-ok:hover{background:var(--ok-tint);border-color:var(--ok)}
+
+/* === Loading / empty =================================================== */
+.loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--muted);font-size:13px}
+.empty{text-align:center;padding:32px;color:var(--muted);font-size:13px}
+
+/* === Recent table ====================================================== */
+.scroll-x{overflow-x:auto}
+.lead-table{width:100%;border-collapse:collapse;font-size:13px}
+.lead-table th{color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--line)}
+.lead-table td{padding:9px 12px;border-bottom:1px solid var(--line-soft);color:var(--ink)}
+.lead-table tr:last-child td{border-bottom:none}
+.lead-table tr:hover td{background:var(--surface-2)}
+.lead-table tbody td:first-child{font-weight:600}
+
+/* === Panel ============================================================= */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.panel h3{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px}
+
+/* === Pipeline ========================================================== */
+.pipeline-row{display:flex;align-items:center;margin-bottom:12px;gap:12px}
+.pipeline-row:last-child{margin-bottom:0}
+.pipeline-label{width:120px;font-size:12.5px;color:var(--muted);flex-shrink:0}
+.pipeline-track{flex:1;background:var(--line-soft);border-radius:999px;height:8px;overflow:hidden}
+.pipeline-fill{height:100%;border-radius:999px;background:var(--brand);min-width:3px}
+.pipeline-fill.dim{background:#D98A8A}
+.pipeline-fill.ok{background:var(--ok)}
+.pipeline-fill.faint{background:#C9C9D2}
+.pipeline-count{font-size:12.5px;font-weight:650;width:26px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+
+/* === Charts ============================================================ */
+.grid-2-1{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:900px){.grid-2-1{grid-template-columns:1fr}}
+.grid-charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:28px}
+@media(max-width:900px){.grid-charts{grid-template-columns:1fr}}
+.chart-wrap{position:relative;height:180px}
+
+/* === Drawer ============================================================ */
+.drawer-backdrop{
+  position:fixed;inset:0;background:rgba(27,27,31,.35);
+  opacity:0;pointer-events:none;transition:opacity .15s;z-index:100;
+}
+.drawer-backdrop.open{opacity:1;pointer-events:auto}
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;width:min(520px,92vw);
+  background:var(--surface);border-left:1px solid var(--line);
+  transform:translateX(100%);transition:transform .2s cubic-bezier(.2,.7,.2,1);
+  z-index:101;overflow-y:auto;padding:22px 24px 32px;
+  box-shadow:-4px 0 24px rgba(27,27,31,.08);
+}
+.drawer.open{transform:translateX(0)}
+.drawer-close{
+  position:sticky;top:0;float:right;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--muted);
+  border-radius:var(--radius-sm);font-size:14px;padding:4px 11px;cursor:pointer;
+}
+.drawer-close:hover{color:var(--ink);background:var(--line-soft)}
+.drawer h2{font-size:18px;font-weight:650;margin:0 0 10px;padding-right:44px;letter-spacing:-.01em}
+.drawer-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.sv-frame{
+  width:100%;aspect-ratio:16/10;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;
+  margin-bottom:16px;display:flex;align-items:center;justify-content:center;
+}
+.sv-frame img{width:100%;height:100%;object-fit:cover}
+.sv-frame .empty{color:var(--faint);font-size:12px}
+.drawer-section{margin-bottom:14px;font-size:13px;line-height:1.55}
+.drawer-section h3{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px;font-weight:700}
+.drawer-section .row{display:flex;justify-content:space-between;gap:12px;padding:4px 0;border-bottom:1px solid var(--line-soft)}
+.drawer-section .row:last-child{border-bottom:none}
+.drawer-section .row .k{color:var(--muted);flex:0 0 auto}
+.drawer-section .row .v{text-align:right;word-break:break-word;color:var(--ink)}
+.conf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center}
+.conf-grid .cell{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px 4px}
+.conf-grid .cell .cnum{font-size:18px;font-weight:700;color:var(--ink)}
+.conf-grid .cell .clab{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+
+/* === NR modal ========================================================== */
+#nr-modal-backdrop{
+  display:none;position:fixed;inset:0;background:rgba(27,27,31,.4);
+  z-index:200;align-items:center;justify-content:center;
+}
+#nr-modal-backdrop.open{display:flex}
+#nr-modal{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:28px;width:460px;max-width:92vw;box-shadow:0 8px 32px rgba(27,27,31,.12);
+}
+#nr-modal h3{font-size:15px;font-weight:650;margin-bottom:4px}
+#nr-modal p{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.55}
+#nr-modal textarea{
+  width:100%;min-height:90px;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:var(--radius-sm);color:var(--ink);
+  font-family:inherit;font-size:13px;padding:10px;resize:vertical;outline:none;
+}
+#nr-modal textarea:focus{border-color:var(--brand)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.modal-actions button{
+  padding:7px 18px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:inherit;
+}
+.modal-actions button:hover{background:var(--surface-2)}
+.modal-actions .confirm-btn{background:var(--brand);border-color:var(--brand);color:#fff}
+.modal-actions .confirm-btn:hover{background:var(--brand-deep);border-color:var(--brand-deep)}
+</style>
+</head>
+<body>
+
+<!-- Setup screen -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <div class="setup-logo"><span>Mac</span><span>Fire</span></div>
+    <h2>Connect to Supabase</h2>
+    <p>Enter your Supabase project URL and anon key. These are saved in your browser and never committed to the repository.</p>
+    <div class="field-group">
+      <label>Supabase Project URL</label>
+      <input type="text" id="cfg-url" placeholder="https://xxxx.supabase.co" autocomplete="off"/>
+    </div>
+    <div class="field-group">
+      <label>Supabase Anon Key</label>
+      <input type="text" id="cfg-key" placeholder="eyJhbGci..." autocomplete="off"/>
+    </div>
+    <div class="field-group">
+      <label>Leads Table Name (default: leads)</label>
+      <input type="text" id="cfg-table" placeholder="leads" autocomplete="off"/>
+    </div>
+    <p class="setup-error" id="setup-error"></p>
+    <button class="setup-btn" onclick="saveConfig()">Connect and load dashboard</button>
+  </div>
+</div>
+
+<!-- Main dashboard -->
+<div id="main">
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo-lockup"><span class="logo-light">Mac</span><span class="logo-dark">Fire</span></div>
+    <div>
+      <div class="hdr-title">AI Lead Scout</div>
+      <div class="hdr-sub">Private commercial planning leads, central Scotland</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="last-updated"><span class="live-dot"></span><span id="last-updated">Loading</span></div>
+    <button class="btn-cfg" onclick="showSetup()">Config</button>
+    <button class="btn" onclick="refreshData()">Refresh</button>
+  </div>
+</header>
+
+<main class="container">
+
+  <div id="data-banner" class="data-banner"></div>
+
+  <div class="run-banner" id="run-banner">
+    <span class="run-chip num" id="run-chip-text">Latest run</span>
+    <span id="run-banner-text">Loading lead data.</span>
+  </div>
+
+  <div class="grid-stats">
+    <div class="stat-card">
+      <div class="label">Qualified and ready</div>
+      <div class="value num" id="kpi-ready" style="color:var(--brand)">—</div>
+      <div class="sub">Ready to contact now</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">High priority</div>
+      <div class="value num" id="kpi-high">—</div>
+      <div class="sub">Score 75 or higher</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Meetings booked</div>
+      <div class="value num" id="kpi-meetings">—</div>
+      <div class="sub">From this pipeline</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Contracted</div>
+      <div class="value num" id="kpi-contracted">—</div>
+      <div class="sub">Signed customers</div>
+    </div>
+  </div>
+
+  <div class="stat-strip">
+    <span class="strip-item"><b class="num" id="kpi-total">—</b> total leads</span>
+    <span class="strip-divider"></span>
+    <span class="strip-item"><b class="num" id="kpi-contacted">—</b> contacted</span>
+    <span class="strip-divider"></span>
+    <span class="strip-item"><b class="num" id="kpi-responded">—</b> responded</span>
+    <span class="strip-divider"></span>
+    <span class="strip-item"><b class="num" id="kpi-research">—</b> need contact info</span>
+    <span class="strip-divider"></span>
+    <span class="strip-item"><b class="num" id="kpi-insufficient">—</b> need profile data</span>
+  </div>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="qualified">Qualified<span class="tab-count" id="tc-qualified">0</span></button>
+    <button class="tab-btn" data-tab="contact-needed">Contact needed<span class="tab-count" id="tc-contact-needed">0</span></button>
+    <button class="tab-btn" data-tab="recent">Recent<span class="tab-count" id="tc-recent">0</span></button>
+    <button class="tab-btn" data-tab="contracted">Contracted<span class="tab-count" id="tc-contracted">0</span></button>
+    <button class="tab-btn" data-tab="all">All leads<span class="tab-count" id="tc-all">0</span></button>
+    <button class="tab-btn" data-tab="not-relevant">Not relevant<span class="tab-count" id="tc-not-relevant">0</span></button>
+  </nav>
+
+  <div id="tab-qualified" class="tab-pane active">
+    <div class="section-header">
+      <h2 class="section-title">Qualified leads</h2>
+      <span class="section-meta">High priority and outreach ready, contact details on file</span>
+    </div>
+    <div class="lead-list" id="qualified-container"><div class="loading">Loading</div></div>
+  </div>
+
+  <div id="tab-contact-needed" class="tab-pane">
+    <div class="section-header">
+      <h2 class="section-title">Contact needed</h2>
+      <span class="section-meta">High priority leads, contact info still required</span>
+    </div>
+    <div class="lead-list" id="contact-needed-container"><div class="loading">Loading</div></div>
+  </div>
+
+  <div id="tab-recent" class="tab-pane">
+    <div class="section-header">
+      <h2 class="section-title">Recent leads</h2>
+      <span class="section-meta">Latest 20 across all scout runs</span>
+    </div>
+    <div class="scroll-x">
+      <div id="recent-container"><div class="loading">Loading</div></div>
+    </div>
+  </div>
+
+  <div id="tab-contracted" class="tab-pane">
+    <div class="section-header">
+      <h2 class="section-title">Contracted</h2>
+      <span class="section-meta">Leads converted to customers</span>
+    </div>
+    <div class="lead-list" id="contracted-container"><div class="loading">Loading</div></div>
+  </div>
+
+  <div id="tab-all" class="tab-pane">
+    <div class="chip-strip" id="sector-chip-strip">
+      <span class="chip-label">Sector</span>
+      <span class="chip active" data-sector="" onclick="setSectorFilter('')">All</span>
+    </div>
+    <div class="toolbar">
+      <input type="text" id="search-input" placeholder="Search company, address, sector" oninput="renderAll()"/>
+      <select class="select" id="all-status-filter" onchange="renderAll()">
+        <option value="">All statuses</option>
+        <option value="New Lead">New Lead</option>
+        <option value="Contacted">Contacted</option>
+        <option value="Responded">Responded</option>
+        <option value="Meeting Booked">Meeting Booked</option>
+        <option value="No Response">No Response</option>
+        <option value="Not Relevant">Not Relevant</option>
+      </select>
+      <select class="select" id="all-priority-filter" onchange="renderAll()">
+        <option value="">All priorities</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+      <select class="select" id="all-queue-filter" onchange="renderAll()">
+        <option value="">All queues</option>
+        <option value="Ready">Ready</option>
+        <option value="Research">Research</option>
+        <option value="Insufficient">Needs Data</option>
+      </select>
+      <select class="select" id="all-sort" onchange="renderAll()">
+        <option value="score">Sort by score</option>
+        <option value="date">Sort by scout date</option>
+        <option value="company">Sort by company</option>
+      </select>
+      <span class="toolbar-count" id="all-count"></span>
+      <div class="views-wrap">
+        <button class="link-quiet" id="views-toggle" onclick="toggleViewsMenu()">Saved views</button>
+        <div class="views-menu" id="views-menu">
+          <div id="views-list"></div>
+          <div class="vm-divider"></div>
+          <div class="vm-save" onclick="saveCurrentView()">+ Save current view</div>
+        </div>
+      </div>
+      <button class="link-quiet" onclick="clearAllFilters()">Clear</button>
+    </div>
+    <div class="lead-list" id="all-container"><div class="loading">Loading</div></div>
+  </div>
+
+  <div id="tab-not-relevant" class="tab-pane">
+    <div class="section-header">
+      <h2 class="section-title">Not relevant</h2>
+      <span class="section-meta">Marked not relevant. Click any lead to restore it to the queue.</span>
+    </div>
+    <div class="lead-list" id="not-relevant-container"><div class="loading">Loading</div></div>
+  </div>
+
+  <!-- Analytics and pipeline, always visible below tabs -->
+  <div class="grid-2-1" style="margin-top:32px">
+    <div class="panel">
+      <h3>Pipeline status</h3>
+      <div id="pipeline-container"><div class="loading">Loading</div></div>
+    </div>
+    <div class="panel">
+      <h3>Priority split</h3>
+      <div class="chart-wrap"><canvas id="priorityChart"></canvas></div>
+    </div>
+  </div>
+  <div class="grid-charts">
+    <div class="panel">
+      <h3>Leads by sector</h3>
+      <div class="chart-wrap"><canvas id="sectorChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h3>Score distribution</h3>
+      <div class="chart-wrap"><canvas id="scoreChart"></canvas></div>
+    </div>
+  </div>
+
+</main>
+</div><!-- /main -->
+
+<!-- Lead drawer -->
+<div id="drawer-backdrop" class="drawer-backdrop" onclick="closeLeadDrawer()"></div>
+<aside id="lead-drawer" class="drawer" aria-hidden="true">
+  <button class="drawer-close" onclick="closeLeadDrawer()">&times;</button>
+  <div id="drawer-body"></div>
+</aside>
+
+<!-- NR modal -->
+<div id="nr-modal-backdrop" onclick="if(event.target===this)closeNrModal()">
+  <div id="nr-modal">
+    <h3>Mark as not relevant</h3>
+    <p>Add a note so the system can learn from this decision (optional).</p>
+    <textarea id="nr-modal-textarea" placeholder="Already a customer, wrong sector, too small..."></textarea>
+    <div class="modal-actions">
+      <button onclick="closeNrModal()">Cancel</button>
+      <button class="confirm-btn" onclick="submitNotRelevant()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// === Constants ==========================================================
+const CONFIG_KEY          = 'macfire_supabase_cfg';
+const VISITOR_KEY         = 'macfire_analytics_visitor_id';
+const SESSION_KEY         = 'macfire_analytics_session_id';
+const SESSION_STARTED_KEY = 'macfire_analytics_session_started_at';
+const ANALYTICS = { clientId:'macfire', dashboardId:'ai-lead-scout-v2', table:'dashboard_events' };
+const VIEWS_KEY = 'macfire_saved_views_v1';
+
+let _sb = null;
+let _leads = [];
+let _charts = {};
+let _analyticsReady = false;
+let _filterTrackTimer = null;
+let _sectorFilter = '';
+
+const C = {
+  brand:'#C31E1F', brandMid:'#D98A8A', brandFaint:'#F0CFCF',
+  neutral:'#C9C9D2', neutralSoft:'#E2E2E8', ok:'#1E7A4C',
+  muted:'#6C6C75', line:'#E7E7EB', lineSoft:'#F0F0F3'
+};
+
+// === Analytics ===========================================================
+function stableUuid(storage, key) {
+  let v = storage.getItem(key);
+  if (!v) {
+    v = window.crypto?.randomUUID ? window.crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+          const r = Math.random() * 16 | 0;
+          return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+    storage.setItem(key, v);
+  }
+  return v;
+}
+function visitorId() { return stableUuid(localStorage, VISITOR_KEY); }
+function sessionId() {
+  const id = stableUuid(sessionStorage, SESSION_KEY);
+  if (!sessionStorage.getItem(SESSION_STARTED_KEY))
+    sessionStorage.setItem(SESSION_STARTED_KEY, new Date().toISOString());
+  return id;
+}
+function compactLeadMeta(lead) {
+  if (!lead) return {};
+  return { lead_id:lead.id||null, company:lead.company||null, priority:lead.priority||null,
+    score:lead.score||null, status:lead.status||null, queue:lead.enrichmentQueue||null };
+}
+async function trackEvent(eventName, metadata = {}) {
+  if (!_sb || !_analyticsReady) return;
+  const payload = {
+    client_id:ANALYTICS.clientId, dashboard_id:ANALYTICS.dashboardId, event_name:eventName,
+    visitor_id:visitorId(), session_id:sessionId(),
+    page_path:`${location.pathname}${location.search}`, page_title:document.title,
+    referrer:document.referrer||null, user_agent:navigator.userAgent,
+    language:navigator.language||null, timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||null,
+    screen_width:window.screen?.width||null, screen_height:window.screen?.height||null,
+    viewport_width:window.innerWidth, viewport_height:window.innerHeight, metadata
+  };
+  try {
+    const { error } = await _sb.from(ANALYTICS.table).insert(payload);
+    if (error) { _analyticsReady = false; }
+  } catch(e) { _analyticsReady = false; }
+}
+function trackFilterChange() {
+  clearTimeout(_filterTrackTimer);
+  _filterTrackTimer = setTimeout(() => {
+    trackEvent('filters_changed', {
+      search_present:!!(document.getElementById('search-input')?.value||'').trim(),
+      status:document.getElementById('all-status-filter')?.value||null,
+      priority:document.getElementById('all-priority-filter')?.value||null
+    });
+  }, 700);
+}
+function bindAnalyticsInteractions() {
+  document.addEventListener('click', ev => {
+    const tab = ev.target.closest('.tab-btn');
+    if (tab) { trackEvent('tab_viewed', { tab:tab.dataset.tab||null }); return; }
+    const tracked = ev.target.closest('[data-analytics-event]');
+    if (!tracked) return;
+    const lead = _leads.find(l => String(l.id) === String(tracked.dataset.leadId));
+    trackEvent(tracked.dataset.analyticsEvent, {
+      ...compactLeadMeta(lead), label:tracked.textContent.trim()||null,
+      href:tracked.getAttribute('href')||null
+    });
+  });
+  ['search-input','all-status-filter','all-priority-filter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(id === 'search-input' ? 'input' : 'change', trackFilterChange);
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') trackEvent('page_hidden');
+  });
+}
+
+// === Config ==============================================================
+function getConfig() {
+  const w = window.MACFIRE_CONFIG || {};
+  if (w.supabaseUrl && w.supabaseKey) return w;
+  try {
+    const stored = localStorage.getItem(CONFIG_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch(e) {}
+  return null;
+}
+function saveConfig() {
+  const url   = document.getElementById('cfg-url').value.trim();
+  const key   = document.getElementById('cfg-key').value.trim();
+  const table = document.getElementById('cfg-table').value.trim() || 'leads';
+  const err   = document.getElementById('setup-error');
+  if (!url || !key) { err.textContent = 'URL and key are required.'; err.style.display='block'; return; }
+  err.style.display = 'none';
+  localStorage.setItem(CONFIG_KEY, JSON.stringify({ supabaseUrl:url, supabaseKey:key, table }));
+  init();
+}
+function showSetup() {
+  const cfg = getConfig() || {};
+  document.getElementById('cfg-url').value   = cfg.supabaseUrl  || '';
+  document.getElementById('cfg-key').value   = cfg.supabaseKey  || '';
+  document.getElementById('cfg-table').value = cfg.table || 'leads';
+  document.getElementById('setup-screen').classList.add('open');
+  document.getElementById('main').style.display = 'none';
+}
+function hideSetup() {
+  document.getElementById('setup-screen').classList.remove('open');
+  document.getElementById('main').style.display = 'block';
+}
+
+// === Init ================================================================
+function init() {
+  const cfg = getConfig();
+  if (!cfg || !cfg.supabaseUrl || !cfg.supabaseKey) { showSetup(); return; }
+  hideSetup();
+  applyFiltersFromUrl();
+  _sb = supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey);
+  _analyticsReady = true;
+  trackEvent('dashboard_opened', { source:'supabase' });
+  loadData();
+}
+
+// === Data loading ========================================================
+async function loadData() {
+  document.getElementById('last-updated').textContent = 'Loading…';
+  const cfg = getConfig();
+  const table = cfg?.table || 'leads';
+  try {
+    const { data, error } = await _sb.from(table).select('*').order('score', { ascending:false });
+    if (error) throw error;
+    _leads = (data || []).map(normalizeLead).map(enrichLead);
+    if (_leads.length === 0) {
+      showBanner('warning',
+        `Connected but no rows returned from <strong>${table}</strong>. ` +
+        `Check that data was imported and that Row Level Security allows the anon role to SELECT.`);
+    } else {
+      hideBanner();
+    }
+    renderAll_data();
+    trackEvent('dashboard_loaded', { lead_count:_leads.length, table });
+    document.getElementById('last-updated').textContent =
+      new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+    const leadParam = new URLSearchParams(window.location.search).get('lead');
+    if (leadParam) openLeadDrawer(leadParam);
+  } catch(e) {
+    console.error(e);
+    document.getElementById('last-updated').textContent = 'Error';
+    showBanner('error', `Supabase error: <strong>${e.message || e}</strong>. Check the URL and key, or click Config to update them.`);
+  }
+}
+function refreshData() {
+  trackEvent('dashboard_refreshed', { source:'supabase' });
+  loadData();
+}
+function showBanner(type, html) {
+  const el = document.getElementById('data-banner');
+  if (!el) return;
+  el.style.display = 'block';
+  if (type === 'error') {
+    el.style.background = 'var(--brand-tint)';
+    el.style.border = '1px solid rgba(195,30,31,.25)';
+    el.style.color = 'var(--brand-deep)';
+  } else {
+    el.style.background = 'var(--warn-tint)';
+    el.style.border = '1px solid rgba(154,103,0,.25)';
+    el.style.color = 'var(--warn)';
+  }
+  el.innerHTML = html;
+}
+function hideBanner() {
+  const el = document.getElementById('data-banner');
+  if (el) el.style.display = 'none';
+}
+
+function firstValue(...values) {
+  for (const v of values) {
+    if (v === null || v === undefined) continue;
+    if (typeof v === 'string' && v.trim() === '') continue;
+    return v;
+  }
+  return '';
+}
+function readableValue(value) {
+  if (value === null || value === undefined) return '';
+  if (Array.isArray(value)) return value.join(', ');
+  if (typeof value === 'object') {
+    return Object.entries(value)
+      .filter(([,v]) => v !== null && v !== undefined && v !== false && v !== '')
+      .map(([k,v]) => v === true ? k : `${k}: ${v}`)
+      .join(', ');
+  }
+  return String(value);
+}
+function normalizeLead(l) {
+  const scoutDate  = firstValue(l.scout_date, l.scout_run_date, l.run_date, l.created_at);
+  const flags      = firstValue(l.flags, l.quality_flags);
+  const director   = firstValue(l.director, l.director_name);
+  const phone      = firstValue(l.phone, l.phone_number);
+  const email      = firstValue(l.email, l.email_address);
+  const website    = firstValue(l.website, l.website_url);
+  const streetView = firstValue(l.street_view, l.streetview_url);
+  const googlePlaces  = firstValue(l.google_places_result, l.google_places);
+  const leadState     = firstValue(l.lead_state, l.status);
+  const profileStatus = firstValue(l.profile_status);
+  const missingProfileFields = readableValue(firstValue(l.missing_profile_fields));
+  return {
+    ...l, scout_date:scoutDate ? String(scoutDate).slice(0,10) : '',
+    flags, director, phone, email, website, street_view:streetView,
+    google_places:googlePlaces, lead_state:leadState,
+    profile_status:profileStatus, missing_profile_fields:missingProfileFields,
+  };
+}
+function enrichLead(l) {
+  let ps = 0;
+  if ((l.company||'').trim())               ps += 25;
+  if ((l.sector||'').trim())                ps += 20;
+  if ((l.postcode||l.address||'').trim())   ps += 20;
+  const roleHint = [l.director, l.director_name, l.trigger, l.next_action,
+    l.flags, l.owner_contact_role_needed, l.profile_status].join(' ').toLowerCase();
+  if (/director|owner|founder|manager|head|contact/.test(roleHint)) ps += 15;
+  const hasContact = !!(l.phone||'').trim() || !!(l.email||'').trim();
+  if (hasContact) ps += 20;
+  let queue;
+  if ((l.lead_state||'').toLowerCase() === 'sales_ready') queue = 'Ready';
+  else if ((l.profile_status||'').toLowerCase() === 'minimum_profile_complete') queue = 'Ready';
+  else if (ps >= 75 && hasContact) queue = 'Ready';
+  else if ((l.missing_profile_fields||'').toString().trim()) queue = 'Research';
+  else if (ps >= 45) queue = 'Research';
+  else queue = 'Insufficient';
+  const wc = (l.website||'').trim() ? 'Verified' : (l.domain||'').trim() ? 'Estimated' : 'Not Available';
+  return { ...l, profileScore:ps, enrichmentQueue:queue, websiteConfidence:wc };
+}
+
+// === Stats ===============================================================
+function computeStats(leads) {
+  const sc = { 'New Lead':0,'Contacted':0,'Responded':0,'Meeting Booked':0,'No Response':0,'Not Relevant':0 };
+  const pc = { High:0, Medium:0, Low:0 };
+  const sectors = {};
+  const scores  = { '90-100':0,'75-89':0,'60-74':0,'50-59':0,'<50':0 };
+  let contacted=0, responded=0, meetings=0, contracted=0;
+  leads.forEach(l => {
+    if (sc[l.status] !== undefined) sc[l.status]++;
+    if (l.status !== 'Not Relevant' && pc[l.priority] !== undefined) pc[l.priority]++;
+    const s = l.sector || 'Other';
+    sectors[s] = (sectors[s]||0) + 1;
+    const scr = l.score || 0;
+    if (scr >= 90) scores['90-100']++;
+    else if (scr >= 75) scores['75-89']++;
+    else if (scr >= 60) scores['60-74']++;
+    else if (scr >= 50) scores['50-59']++;
+    else scores['<50']++;
+    if (['Contacted','Responded','Meeting Booked'].includes(l.status)) contacted++;
+    if (['Responded','Meeting Booked'].includes(l.status)) responded++;
+    if (l.status === 'Meeting Booked') meetings++;
+    if (['contracted','customer','won','closed won'].includes((l.status||'').toLowerCase())) contracted++;
+  });
+  const high = leads.filter(l => l.priority === 'High' && l.status !== 'Not Relevant');
+  const queueCounts = { Ready:0, Research:0, Insufficient:0 };
+  high.forEach(l => { if (queueCounts[l.enrichmentQueue] !== undefined) queueCounts[l.enrichmentQueue]++; });
+  const dates = [...new Set(leads.map(l => l.scout_date).filter(Boolean))].sort().reverse();
+  const lastDate = dates[0] || '';
+  const todayLeads = lastDate ? leads.filter(l => l.scout_date === lastDate) : [];
+  const todayPriority = { High:0, Medium:0, Low:0 };
+  todayLeads.forEach(l => { if (todayPriority[l.priority] !== undefined) todayPriority[l.priority]++; });
+  return { sc, pc, sectors, scores, contacted, responded, meetings, contracted,
+    queueCounts, high, dates, lastDate, todayLeads, todayPriority };
+}
+
+// === Render all ==========================================================
+function setTabCount(id, n) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = n;
+}
+function renderAll_data() {
+  const stats = computeStats(_leads);
+
+  // Primary KPI cards
+  document.getElementById('kpi-ready').textContent      = stats.queueCounts.Ready;
+  document.getElementById('kpi-high').textContent       = stats.pc.High;
+  document.getElementById('kpi-meetings').textContent   = stats.meetings;
+  document.getElementById('kpi-contracted').textContent = stats.contracted;
+
+  // Secondary stat strip
+  document.getElementById('kpi-total').textContent       = _leads.length;
+  document.getElementById('kpi-contacted').textContent   = stats.contacted;
+  document.getElementById('kpi-responded').textContent   = stats.responded;
+  document.getElementById('kpi-research').textContent    = stats.queueCounts.Research;
+  document.getElementById('kpi-insufficient').textContent = stats.queueCounts.Insufficient;
+
+  // Run banner
+  if (stats.lastDate) {
+    const tp = stats.todayPriority || {};
+    const parts = [];
+    if (tp.High)   parts.push(`${tp.High} high`);
+    if (tp.Medium) parts.push(`${tp.Medium} medium`);
+    if (tp.Low)    parts.push(`${tp.Low} low`);
+    document.getElementById('run-chip-text').textContent = `Latest run: ${stats.lastDate}`;
+    document.getElementById('run-banner-text').innerHTML =
+      `<strong>${stats.todayLeads.length} leads</strong> from the most recent run${parts.length ? ' (' + parts.join(', ') + ')' : ''}.`;
+    document.getElementById('run-banner').classList.add('visible');
+  }
+
+  // Tab counts
+  const qLeads  = _leads.filter(l => l.priority==='High' && l.enrichmentQueue==='Ready' && l.status!=='Not Relevant');
+  const cnLeads = _leads.filter(l => l.priority==='High' && l.enrichmentQueue==='Research' && l.status!=='Not Relevant');
+  const reLeads = [..._leads].filter(l => l.scout_date && l.status!=='Not Relevant')
+    .sort((a,b)=>(b.scout_date||'').localeCompare(a.scout_date||'')||(b.score||0)-(a.score||0)).slice(0,20);
+  const ctLeads = _leads.filter(l => ['contracted','customer','won','closed won'].includes((l.status||'').toLowerCase()));
+  const nrLeads = _leads.filter(l => l.status==='Not Relevant');
+  setTabCount('tc-qualified',     qLeads.length);
+  setTabCount('tc-contact-needed',cnLeads.length);
+  setTabCount('tc-recent',        reLeads.length);
+  setTabCount('tc-contracted',    ctLeads.length);
+  setTabCount('tc-all',           _leads.length);
+  setTabCount('tc-not-relevant',  nrLeads.length);
+
+  renderPipeline(stats.sc, _leads.length);
+  renderCharts(stats);
+  renderSectorChips();
+  renderQualified();
+  renderContactNeeded();
+  renderRecent();
+  renderContracted();
+  renderNotRelevant();
+  renderAll();
+}
+
+// === Pipeline ============================================================
+function renderPipeline(sc) {
+  const max = Math.max(...Object.values(sc), 1);
+  const fillCls = {
+    'New Lead':'', 'Contacted':'dim',
+    'Responded':'ok', 'Meeting Booked':'ok',
+    'No Response':'faint', 'Not Relevant':'faint'
+  };
+  document.getElementById('pipeline-container').innerHTML =
+    Object.entries(sc).map(([k,v]) => `
+      <div class="pipeline-row">
+        <span class="pipeline-label">${k}</span>
+        <span class="pipeline-track"><span class="pipeline-fill ${fillCls[k]||''}" style="width:${(v/max*100).toFixed(1)}%"></span></span>
+        <span class="pipeline-count">${v}</span>
+      </div>`).join('');
+}
+
+// === Charts ==============================================================
+function renderCharts(stats) {
+  Chart.defaults.font.family = '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
+  Chart.defaults.font.size = 11;
+  Chart.defaults.color = C.muted;
+
+  if (_charts.priority) _charts.priority.destroy();
+  _charts.priority = new Chart(document.getElementById('priorityChart'), {
+    type:'doughnut',
+    data:{
+      labels:['High','Medium','Low'],
+      datasets:[{ data:[stats.pc.High,stats.pc.Medium,stats.pc.Low],
+        backgroundColor:[C.brand,C.brandMid,C.neutralSoft],borderWidth:2,borderColor:'#fff' }]
+    },
+    options:{
+      cutout:'68%',maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,usePointStyle:true,padding:14,color:C.muted}}}
+    }
+  });
+
+  const sectors = Object.entries(stats.sectors).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  if (_charts.sector) _charts.sector.destroy();
+  _charts.sector = new Chart(document.getElementById('sectorChart'), {
+    type:'bar',
+    data:{
+      labels:sectors.map(([k])=>k),
+      datasets:[{ data:sectors.map(([,v])=>v),backgroundColor:C.brand,borderRadius:4,maxBarThickness:26 }]
+    },
+    options:{
+      maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{display:false},border:{color:C.line},ticks:{color:C.muted}},
+        y:{grid:{color:C.lineSoft},border:{display:false},ticks:{color:C.muted,stepSize:5}}
+      }
+    }
+  });
+
+  if (_charts.score) _charts.score.destroy();
+  _charts.score = new Chart(document.getElementById('scoreChart'), {
+    type:'bar',
+    data:{
+      labels:Object.keys(stats.scores),
+      datasets:[{ data:Object.values(stats.scores),
+        backgroundColor:[C.brand,C.brandMid,C.brandFaint,C.neutralSoft,C.neutral],
+        borderRadius:4,maxBarThickness:34 }]
+    },
+    options:{
+      maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{display:false},border:{color:C.line},ticks:{color:C.muted}},
+        y:{grid:{color:C.lineSoft},border:{display:false},ticks:{color:C.muted,stepSize:10}}
+      }
+    }
+  });
+}
+
+// === Lead card helpers ===================================================
+function scoreBar(s) {
+  if (!s && s !== 0) return '';
+  const cls = s >= 75 ? '' : s >= 50 ? 's-mid' : 's-low';
+  return `<span class="score ${cls}"><span class="score-num num">${s}</span><span class="score-track"><span class="score-fill" style="width:${s}%"></span></span></span>`;
+}
+function priorityBadge(p) {
+  if (p === 'High') return `<span class="badge b-priority">High</span>`;
+  return `<span class="badge b-plain">${p || 'Unknown'}</span>`;
+}
+function statusBadge(s) {
+  const cls = {
+    'New Lead':'b-plain','Contacted':'b-attention','Responded':'b-ready',
+    'Meeting Booked':'b-priority','No Response':'b-plain','Not Relevant':'b-none'
+  }[s] || 'b-plain';
+  return `<span class="badge ${cls}">${s || 'Unknown'}</span>`;
+}
+function queueBadge(q) {
+  if (q === 'Ready')    return `<span class="badge b-ready">Ready</span>`;
+  if (q === 'Research') return `<span class="badge b-attention">Research</span>`;
+  return `<span class="badge b-plain">Needs data</span>`;
+}
+function esc(s) {
+  const str = s == null ? '' : (Array.isArray(s) ? s.join(', ') : String(s));
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// === Lead drawer =========================================================
+function openLeadDrawer(id) {
+  const l = _leads.find(x => x.id === id);
+  if (!l) return;
+  trackEvent('lead_drawer_opened', compactLeadMeta(l));
+  const sv = l.streetview_url || l.street_view || '';
+  const svBlock = sv
+    ? `<div class="sv-frame"><img src="${esc(sv)}" alt="Street View" onerror="this.parentNode.innerHTML='<div class=&quot;empty&quot;>Street View unavailable</div>'"/></div>`
+    : '<div class="sv-frame"><div class="empty">No Street View available</div></div>';
+  const row = (k,v) => v===null||v===undefined||v===''||v===false
+    ? '' : `<div class="row"><span class="k">${esc(k)}</span><span class="v">${v}</span></div>`;
+  const dlink = (url, label, evt='lead_external_link_opened') => url
+    ? `<a href="${esc(url)}" target="_blank" rel="noopener" style="color:var(--brand)" data-analytics-event="${evt}" data-lead-id="${esc(l.id)}">${esc(label||url)}</a>`
+    : '';
+  const websiteLine = (l.website_url||l.website)
+    ? dlink(l.website_url||l.website,(l.website_url||l.website).replace(/^https?:\/\//,''),'lead_website_opened')
+    : '';
+  const dirAppts = l.director_total_appointments != null
+    ? `${l.director_total_appointments} prior appt${l.director_total_appointments===1?'':'s'}`
+      + (l.director_dissolved_count ? ` (${l.director_dissolved_count} dissolved)` : '')
+    : '';
+  document.getElementById('drawer-body').innerHTML = `
+    <h2>${esc(l.company || 'Unknown')}</h2>
+    <div class="drawer-meta">
+      ${priorityBadge(l.priority)}
+      ${l.score ? scoreBar(l.score) : ''}
+      ${statusBadge(l.status)}
+      ${l.sector ? `<span class="badge b-plain">${esc(l.sector)}</span>` : ''}
+    </div>
+    ${svBlock}
+    <div class="drawer-section">
+      <h3>Location</h3>
+      ${row('Address',esc(l.address||''))}
+      ${row('Postcode',esc(l.postcode||''))}
+      ${row('Maps',dlink(l.maps_url,'Open in Google Maps','lead_maps_opened'))}
+      ${row('Street View',dlink(sv,'Full-size Street View','lead_street_view_opened'))}
+      ${row('Google Places',esc(l.google_places||''))}
+    </div>
+    <div class="drawer-section">
+      <h3>Confidence</h3>
+      <div class="conf-grid">
+        <div class="cell"><div class="cnum">${l.premises_confidence??'—'}</div><div class="clab">Premises</div></div>
+        <div class="cell"><div class="cnum">${l.operational_confidence??'—'}</div><div class="clab">Operational</div></div>
+        <div class="cell"><div class="cnum">${l.compliance_confidence??'—'}</div><div class="clab">Compliance</div></div>
+        <div class="cell"><div class="cnum">${l.contactability_confidence??'—'}</div><div class="clab">Reach</div></div>
+      </div>
+    </div>
+    <div class="drawer-section">
+      <h3>Director and Company</h3>
+      ${row('Director',esc(l.director||l.director_name||''))}
+      ${row('Active directors',l.director_count!=null?esc(String(l.director_count)):'')}
+      ${row('Prior appointments',esc(dirAppts))}
+      ${row('CH number',esc(l.companies_house_number||''))}
+      ${row('Incorporated',esc(l.incorporated||''))}
+      ${row('Company status',esc(l.company_status||''))}
+      ${row('SIC codes',esc(l.matched_sic_codes||''))}
+    </div>
+    <div class="drawer-section">
+      <h3>Contact and Web</h3>
+      ${row('Phone',esc(l.phone||l.phone_number||''))}
+      ${row('Email',(l.email||l.email_address)
+        ?`<a href="mailto:${esc(l.email||l.email_address)}" style="color:var(--brand)" data-analytics-event="lead_email_clicked" data-lead-id="${esc(l.id)}">${esc(l.email||l.email_address)}</a>`
+        :'')}
+      ${row('Website',websiteLine)}
+      ${row('Page title',esc(l.web_title||''))}
+      ${row('H1',esc(l.web_h1||''))}
+      ${row('Opening signal',l.web_opening?'Yes':'')}
+      ${row('Booking system',esc(l.web_booking||''))}
+      ${row('Hiring signal',l.web_hiring?'Yes':'')}
+    </div>
+    <div class="drawer-section">
+      <h3>Scout</h3>
+      ${row('Trigger',esc(l.trigger||''))}
+      ${row('Reasoning',esc(l.reasoning||''))}
+      ${row('Quality flags',esc(l.flags||l.quality_flags||''))}
+      ${row('Scout date',esc(l.scout_date||''))}
+      ${row('Source',esc(l.source||''))}
+    </div>
+    ${l.relevance_notes ? `
+    <div class="drawer-section">
+      <h3>Your Notes</h3>
+      <div style="font-size:13px;line-height:1.55;color:var(--ink)">${esc(l.relevance_notes)}</div>
+    </div>` : ''}
+  `;
+  document.getElementById('lead-drawer').classList.add('open');
+  document.getElementById('drawer-backdrop').classList.add('open');
+  document.getElementById('lead-drawer').setAttribute('aria-hidden','false');
+  const params = new URLSearchParams(window.location.search);
+  params.set('lead', id);
+  history.replaceState(null, '', '?' + params.toString());
+}
+function closeLeadDrawer() {
+  document.getElementById('lead-drawer').classList.remove('open');
+  document.getElementById('drawer-backdrop').classList.remove('open');
+  document.getElementById('lead-drawer').setAttribute('aria-hidden','true');
+  const params = new URLSearchParams(window.location.search);
+  params.delete('lead');
+  const qs = params.toString();
+  history.replaceState(null, '', qs ? '?' + qs : window.location.pathname);
+}
+document.addEventListener('keydown', e => { if (e.key==='Escape') { closeLeadDrawer(); closeNrModal(); } });
+
+// === Sector chips ========================================================
+function setSectorFilter(sector) {
+  _sectorFilter = sector || '';
+  document.querySelectorAll('#sector-chip-strip .chip').forEach(c => {
+    c.classList.toggle('active', (c.dataset.sector||'') === _sectorFilter);
+  });
+  renderAll();
+}
+function renderSectorChips() {
+  const strip = document.getElementById('sector-chip-strip');
+  if (!strip) return;
+  strip.querySelectorAll('.chip[data-sector]:not([data-sector=""])').forEach(c => c.remove());
+  const counts = {};
+  _leads.forEach(l => { const s=(l.sector||'').trim(); if(s) counts[s]=(counts[s]||0)+1; });
+  Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8).forEach(([name,count]) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip' + (_sectorFilter===name ? ' active' : '');
+    chip.dataset.sector = name;
+    chip.onclick = () => setSectorFilter(name);
+    chip.innerHTML = `${esc(name)} <span class="chip-count">${count}</span>`;
+    strip.appendChild(chip);
+  });
+}
+
+// === URL sync ============================================================
+function applyFiltersFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const set = (id, key) => { const el=document.getElementById(id); if(el&&params.get(key)!==null) el.value=params.get(key); };
+  set('search-input','q');
+  set('all-status-filter','status');
+  set('all-priority-filter','priority');
+  set('all-queue-filter','queue');
+  set('all-sort','sort');
+  _sectorFilter = params.get('sector') || '';
+}
+function syncFiltersToUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const pairs = {
+    q:       document.getElementById('search-input')?.value||'',
+    status:  document.getElementById('all-status-filter')?.value||'',
+    priority:document.getElementById('all-priority-filter')?.value||'',
+    queue:   document.getElementById('all-queue-filter')?.value||'',
+    sort:    document.getElementById('all-sort')?.value||'',
+    sector:  _sectorFilter||'',
+  };
+  for (const [k,v] of Object.entries(pairs)) {
+    if (v && !(k==='sort'&&v==='score')) params.set(k,v); else params.delete(k);
+  }
+  const qs = params.toString();
+  history.replaceState(null, '', qs ? '?'+qs : window.location.pathname);
+}
+function clearAllFilters() {
+  ['search-input','all-status-filter','all-priority-filter','all-queue-filter']
+    .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  const sortEl = document.getElementById('all-sort');
+  if (sortEl) sortEl.value = 'score';
+  _sectorFilter = '';
+  document.querySelectorAll('#sector-chip-strip .chip').forEach(c => {
+    c.classList.toggle('active', !c.dataset.sector);
+  });
+  renderAll();
+}
+
+// === Saved views =========================================================
+function loadSavedViews() {
+  try { return JSON.parse(localStorage.getItem(VIEWS_KEY)||'[]'); } catch(e) { return []; }
+}
+function persistSavedViews(views) { localStorage.setItem(VIEWS_KEY, JSON.stringify(views)); }
+function currentFilterSnapshot() {
+  return {
+    q:       document.getElementById('search-input')?.value||'',
+    status:  document.getElementById('all-status-filter')?.value||'',
+    priority:document.getElementById('all-priority-filter')?.value||'',
+    queue:   document.getElementById('all-queue-filter')?.value||'',
+    sort:    document.getElementById('all-sort')?.value||'score',
+    sector:  _sectorFilter||'',
+  };
+}
+function saveCurrentView() {
+  const snap = currentFilterSnapshot();
+  const isEmpty = !snap.q && !snap.status && !snap.priority && !snap.queue && !snap.sector && snap.sort==='score';
+  if (isEmpty) { alert('Set at least one filter before saving a view.'); return; }
+  const suggested = [snap.priority,snap.sector,snap.status,snap.queue,snap.q].filter(Boolean).join(' · ') || 'Custom view';
+  const name = prompt('Name this view:', suggested);
+  if (!name) return;
+  const views = loadSavedViews();
+  views.push({ id:Date.now().toString(36), name:name.trim(), snap });
+  persistSavedViews(views);
+  renderSavedViews();
+  closeViewsMenu();
+}
+function applySavedView(id) {
+  const v = loadSavedViews().find(x => x.id===id);
+  if (!v) return;
+  const s = v.snap || {};
+  const setVal = (id,val) => { const el=document.getElementById(id); if(el) el.value=val||''; };
+  setVal('search-input',s.q);
+  setVal('all-status-filter',s.status);
+  setVal('all-priority-filter',s.priority);
+  setVal('all-queue-filter',s.queue);
+  setVal('all-sort',s.sort||'score');
+  _sectorFilter = s.sector || '';
+  document.querySelectorAll('#sector-chip-strip .chip').forEach(c => {
+    c.classList.toggle('active', (c.dataset.sector||'')===_sectorFilter);
+  });
+  renderAll();
+  closeViewsMenu();
+}
+function deleteSavedView(id, ev) {
+  ev?.stopPropagation();
+  if (!confirm('Delete this view?')) return;
+  persistSavedViews(loadSavedViews().filter(v => v.id!==id));
+  renderSavedViews();
+}
+function renderSavedViews() {
+  const list = document.getElementById('views-list');
+  if (!list) return;
+  const views = loadSavedViews();
+  if (!views.length) {
+    list.innerHTML = '<div class="vm-empty">No saved views yet. Set filters then click "Save current view".</div>';
+    return;
+  }
+  list.innerHTML = views.map(v => `
+    <div class="vm-item" onclick="applySavedView('${v.id}')">
+      <span class="vm-name" title="${esc(v.name)}">${esc(v.name)}</span>
+      <button class="vm-del" onclick="deleteSavedView('${v.id}',event)" title="Delete">&times;</button>
+    </div>`).join('');
+}
+function toggleViewsMenu() {
+  const m = document.getElementById('views-menu');
+  if (!m) return;
+  m.classList.toggle('open');
+  if (m.classList.contains('open')) renderSavedViews();
+}
+function closeViewsMenu() { document.getElementById('views-menu')?.classList.remove('open'); }
+document.addEventListener('click', ev => {
+  const wrap = document.querySelector('.views-wrap');
+  if (wrap && !wrap.contains(ev.target)) closeViewsMenu();
+});
+
+// === Lead card ===========================================================
+function leadCard(l) {
+  const maps = l.maps_url
+    ? `<a class="btn-sm" href="${esc(l.maps_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" data-analytics-event="lead_maps_opened" data-lead-id="${esc(l.id)}">Map</a>`
+    : '';
+  const sv = l.street_view
+    ? `<a class="btn-sm" href="${esc(l.street_view)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" data-analytics-event="lead_street_view_opened" data-lead-id="${esc(l.id)}">Street view</a>`
+    : '';
+  const website = l.website
+    ? `<a href="${esc(l.website)}" target="_blank" rel="noopener" style="color:var(--brand)" onclick="event.stopPropagation()" data-analytics-event="lead_website_opened" data-lead-id="${esc(l.id)}">${esc(l.website.replace(/^https?:\/\//,''))}</a>`
+    : '';
+  const email = l.email
+    ? `<a href="mailto:${esc(l.email)}" style="color:var(--brand)" onclick="event.stopPropagation()" data-analytics-event="lead_email_clicked" data-lead-id="${esc(l.id)}">${esc(l.email)}</a>`
+    : '';
+  const addBack = l.status==='Not Relevant'
+    ? `<button class="btn-sm btn-ok" onclick="updateStatus('${l.id}','New Lead')">Add back to queue</button>`
+    : `<button class="btn-sm" onclick="markNotRelevant('${l.id}')">Not relevant</button>`;
+  return `
+  <article class="lead-card" id="lc-${l.id}" onclick="openLeadDrawer('${l.id}')">
+    <div class="lead-top">
+      <div style="min-width:0">
+        <div class="lead-name">${esc(l.company||'Unknown')}</div>
+        <div class="lead-meta">
+          ${priorityBadge(l.priority)}
+          ${queueBadge(l.enrichmentQueue)}
+          ${l.sector   ? `<span class="badge b-plain">${esc(l.sector)}</span>` : ''}
+          ${l.postcode ? `<span class="badge b-plain">${esc(l.postcode)}</span>` : ''}
+          ${statusBadge(l.status)}
+        </div>
+      </div>
+      ${l.score ? scoreBar(l.score) : ''}
+    </div>
+    <div class="lead-detail">
+      ${l.director   ? `<div><strong>Director:</strong> ${esc(l.director)}</div>` : ''}
+      ${l.address    ? `<div><strong>Address:</strong> ${esc(l.address)}</div>` : ''}
+      ${l.phone      ? `<div><strong>Phone:</strong> ${esc(l.phone)}</div>` : ''}
+      ${email        ? `<div><strong>Email:</strong> ${email}</div>` : ''}
+      ${website      ? `<div><strong>Website:</strong> ${website}</div>` : ''}
+      ${l.reasoning  ? `<div><strong>Reason:</strong> ${esc(l.reasoning)}</div>` : ''}
+      ${l.relevance_notes ? `<div class="nr-notes-snippet">Notes: ${esc(l.relevance_notes)}</div>` : ''}
+    </div>
+    <div class="lead-actions" onclick="event.stopPropagation()">
+      ${maps}${sv}
+      ${l.status!=='Contacted'     ? `<button class="btn-sm" onclick="updateStatus('${l.id}','Contacted')">Mark contacted</button>` : ''}
+      ${l.status!=='Meeting Booked' ? `<button class="btn-sm" onclick="updateStatus('${l.id}','Meeting Booked')">Meeting booked</button>` : ''}
+      ${addBack}
+    </div>
+  </article>`;
+}
+
+// === NR modal ============================================================
+let _nrPendingId = null;
+function markNotRelevant(id) {
+  _nrPendingId = id;
+  document.getElementById('nr-modal-textarea').value = '';
+  document.getElementById('nr-modal-backdrop').classList.add('open');
+  setTimeout(() => document.getElementById('nr-modal-textarea').focus(), 50);
+}
+function closeNrModal() {
+  _nrPendingId = null;
+  document.getElementById('nr-modal-backdrop').classList.remove('open');
+}
+async function submitNotRelevant() {
+  const notes = document.getElementById('nr-modal-textarea').value.trim();
+  const id = _nrPendingId;
+  closeNrModal();
+  if (id) await updateStatus(id, 'Not Relevant', notes || null);
+}
+
+// === Status update =======================================================
+async function updateStatus(id, newStatus, notes) {
+  const cfg   = getConfig();
+  const table = cfg?.table || 'leads';
+  const btns  = document.querySelectorAll(`#lc-${id} button`);
+  btns.forEach(b => b.disabled = true);
+  try {
+    const update = { status:newStatus };
+    if (newStatus==='Not Relevant') update.relevance_notes = notes ?? null;
+    const { error } = await _sb.from(table).update(update).eq('id', id);
+    if (error) throw error;
+    const previous = _leads.find(l => l.id===id);
+    trackEvent('lead_status_updated', { ...compactLeadMeta(previous), from_status:previous?.status||null, to_status:newStatus });
+    const patch = { status:newStatus };
+    if (newStatus==='Not Relevant') patch.relevance_notes = notes ?? null;
+    _leads = _leads.map(l => l.id===id ? enrichLead({ ...l, ...patch }) : l);
+    renderAll_data();
+  } catch(e) {
+    console.error('Status update failed:', e);
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
+// === Render sections =====================================================
+function renderQualified() {
+  const leads = _leads.filter(l => l.priority==='High' && l.enrichmentQueue==='Ready' && l.status!=='Not Relevant');
+  document.getElementById('qualified-container').innerHTML = leads.length
+    ? leads.slice(0,20).map(leadCard).join('')
+    : '<div class="empty">No qualified leads yet.</div>';
+}
+function renderContactNeeded() {
+  const leads = _leads.filter(l => l.priority==='High' && l.enrichmentQueue==='Research' && l.status!=='Not Relevant');
+  document.getElementById('contact-needed-container').innerHTML = leads.length
+    ? leads.slice(0,20).map(leadCard).join('')
+    : '<div class="empty">No leads need contact info right now.</div>';
+}
+function renderRecent() {
+  const leads = [..._leads]
+    .filter(l => l.scout_date && l.status!=='Not Relevant')
+    .sort((a,b) => (b.scout_date>a.scout_date?1:b.scout_date<a.scout_date?-1:0)||(b.score||0)-(a.score||0))
+    .slice(0,20);
+  document.getElementById('recent-container').innerHTML = leads.length
+    ? `<table class="lead-table"><thead><tr>
+        <th>Company</th><th>Priority</th><th>Score</th><th>Status</th><th>Sector</th><th>Postcode</th><th>Scout date</th>
+      </tr></thead><tbody>
+      ${leads.map(l => `<tr>
+        <td>${esc(l.company||'Unknown')}</td>
+        <td>${priorityBadge(l.priority)}</td>
+        <td>${l.score ? scoreBar(l.score) : '—'}</td>
+        <td>${statusBadge(l.status)}</td>
+        <td style="color:var(--muted)">${esc(l.sector||'—')}</td>
+        <td style="color:var(--muted)">${esc(l.postcode||'—')}</td>
+        <td style="color:var(--muted)">${esc(l.scout_date||'—')}</td>
+      </tr>`).join('')}
+      </tbody></table>`
+    : '<div class="empty">No recent leads.</div>';
+}
+function renderContracted() {
+  const leads = _leads.filter(l => ['contracted','customer','won','closed won'].includes((l.status||'').toLowerCase()));
+  document.getElementById('contracted-container').innerHTML = leads.length
+    ? leads.map(leadCard).join('')
+    : '<div class="empty">No contracted customers yet.</div>';
+}
+function renderNotRelevant() {
+  const leads = _leads.filter(l => l.status==='Not Relevant').sort((a,b)=>(b.score||0)-(a.score||0));
+  document.getElementById('not-relevant-container').innerHTML = leads.length
+    ? leads.map(leadCard).join('')
+    : '<div class="empty">Nothing marked not relevant. Use the button on any lead to move it here.</div>';
+}
+function renderAll() {
+  syncFiltersToUrl();
+  const q   = (document.getElementById('search-input')?.value||'').toLowerCase();
+  const st  = document.getElementById('all-status-filter')?.value||'';
+  const pr  = document.getElementById('all-priority-filter')?.value||'';
+  const qu  = document.getElementById('all-queue-filter')?.value||'';
+  const sec = _sectorFilter;
+  const sort= document.getElementById('all-sort')?.value||'score';
+  const filtered = _leads.filter(l => {
+    const match = !q || [l.company,l.address,l.sector,l.postcode,l.director,l.flags,l.profile_status,l.reasoning,l.google_places]
+      .join(' ').toLowerCase().includes(q);
+    const notRelOk = st==='Not Relevant' || l.status!=='Not Relevant';
+    return match && notRelOk
+      && (!st  || l.status===st)
+      && (!pr  || l.priority===pr)
+      && (!qu  || l.enrichmentQueue===qu)
+      && (!sec || l.sector===sec);
+  }).sort((a,b) => {
+    if (sort==='date')    return (b.scout_date||'').localeCompare(a.scout_date||'')||(b.score||0)-(a.score||0);
+    if (sort==='company') return (a.company||'').localeCompare(b.company||'');
+    return (b.score||0)-(a.score||0);
+  });
+  document.getElementById('all-count').textContent = `${filtered.length} lead${filtered.length!==1?'s':''}`;
+  document.getElementById('all-container').innerHTML = filtered.length
+    ? filtered.slice(0,50).map(leadCard).join('')
+    : '<div class="empty">No leads match your filters.</div>';
+}
+
+// === Tab switching =======================================================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// === Start ===============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  bindAnalyticsInteractions();
+  init();
+});
+</script>
+</body>
+</html>
