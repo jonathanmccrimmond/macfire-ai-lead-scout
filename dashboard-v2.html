@@ -527,7 +527,6 @@ a{color:inherit;text-decoration:none}
     </div>
     <div class="hdr-text">
       <div class="hdr-title">AI Lead Scout</div>
-      <div class="hdr-sub">Private commercial planning leads, central Scotland</div>
     </div>
     <span class="hdr-divider"></span>
     <a href="index.html" class="hdr-classic">Classic view</a>
@@ -1005,8 +1004,8 @@ function enrichLead(l) {
   const hasContact = !!(l.phone||'').trim() || !!(l.email||'').trim();
   if (hasContact) ps += 20;
   let queue;
-  if ((l.lead_state||'').toLowerCase() === 'sales_ready') queue = 'Ready';
-  else if ((l.profile_status||'').toLowerCase() === 'minimum_profile_complete') queue = 'Ready';
+  if ((l.lead_state||'').toLowerCase() === 'sales_ready' && hasContact) queue = 'Ready';
+  else if ((l.profile_status||'').toLowerCase() === 'minimum_profile_complete' && hasContact) queue = 'Ready';
   else if (ps >= 75 && hasContact) queue = 'Ready';
   else if ((l.missing_profile_fields||'').toString().trim()) queue = 'Research';
   else if (ps >= 45) queue = 'Research';
