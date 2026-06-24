@@ -894,9 +894,11 @@ function computeStats(leads) {
     if (['contracted','customer','won','closed won'].includes((l.status||'').toLowerCase())) contracted++;
   });
 
-  const high = leads.filter(l => l.priority === 'High' && l.status !== 'Not Relevant');
-  const queueCounts = { Ready:0, Research:0, Insufficient:0 };
-  high.forEach(l => { if (queueCounts[l.enrichmentQueue] !== undefined) queueCounts[l.enrichmentQueue]++; });
+  const queueCounts = {
+    Ready:       leads.filter(l => l.priority === 'High' && l.enrichmentQueue === 'Ready'       && l.status !== 'Not Relevant').length,
+    Research:    leads.filter(l => l.priority === 'High' && l.enrichmentQueue === 'Research'    && l.status !== 'Not Relevant').length,
+    Insufficient:leads.filter(l => l.priority === 'High' && l.enrichmentQueue === 'Insufficient'&& l.status !== 'Not Relevant').length,
+  };
 
   // Dates
   const dates = [...new Set(leads.map(l => l.scout_date).filter(Boolean))].sort().reverse();
