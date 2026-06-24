@@ -112,6 +112,9 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
 .badge-ready{background:rgba(16,185,129,.2);color:#34D399;border:1px solid rgba(16,185,129,.4)}
 .badge-research{background:rgba(245,158,11,.2);color:#FBBF24;border:1px solid rgba(245,158,11,.4)}
 .badge-insufficient{background:rgba(148,163,184,.18);color:#CBD5E1;border:1px solid rgba(148,163,184,.35)}
+.badge-emailed{background:rgba(14,165,233,.2);color:#38BDF8;border:1px solid rgba(14,165,233,.4)}
+.badge-ch-email{background:rgba(99,102,241,.15);color:#A5B4FC;border:1px solid rgba(99,102,241,.3);font-size:10px}
+.badge-ch-phone{background:rgba(16,185,129,.15);color:#6EE7B7;border:1px solid rgba(16,185,129,.3);font-size:10px}
 
 /* ── Lead cards ───────────────────────────────────────────────── */
 .lead-card{background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:14px 16px;margin-bottom:10px}
@@ -134,6 +137,9 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
 .lead-action-btn:disabled{opacity:.6;cursor:not-allowed}
 .lead-action-btn.contacted-btn{border-color:rgba(245,158,11,.4);color:#FBBF24}
 .lead-action-btn.notrel-btn{border-color:rgba(148,163,184,.3);color:var(--muted)}
+.lead-action-btn.draft-btn{border-color:rgba(14,165,233,.45);color:#38BDF8}
+.lead-action-btn.marksent-btn{border-color:rgba(16,185,129,.5);color:#34D399;background:rgba(16,185,129,.12)}
+.lead-action-btn.returnq-btn{border-color:rgba(99,102,241,.45);color:#A5B4FC}
 
 /* ── Pipeline status bars ──────────────────────────────────────── */
 .pipeline-row{display:flex;align-items:center;margin-bottom:12px}
@@ -448,6 +454,7 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
             <option value="">All statuses</option>
             <option value="New Lead">New Lead</option>
             <option value="Contacted">Contacted</option>
+            <option value="Email Sent">Email Sent</option>
             <option value="Responded">Responded</option>
             <option value="Meeting Booked">Meeting Booked</option>
             <option value="No Response">No Response</option>
@@ -464,6 +471,12 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
             <option value="Ready">Ready</option>
             <option value="Research">Research</option>
             <option value="Insufficient">Needs Data</option>
+          </select>
+          <select id="all-channel-filter" onchange="renderAll()">
+            <option value="">All channels</option>
+            <option value="Ready to email">Ready to email</option>
+            <option value="Ready to phone">Ready to phone</option>
+            <option value="Needs data">Needs data</option>
           </select>
           <select id="all-sort" onchange="renderAll()">
             <option value="score">Sort by score</option>
@@ -866,12 +879,18 @@ function enrichLead(l) {
 
   const wc = (l.website || '').trim() ? 'Verified' : (l.domain || '').trim() ? 'Estimated' : 'Not Available';
 
-  return { ...l, profileScore: ps, enrichmentQueue: queue, websiteConfidence: wc };
+  const channelQueue = (l.email || '').trim()
+    ? 'Ready to email'
+    : (l.phone || '').trim()
+      ? 'Ready to phone'
+      : 'Needs data';
+
+  return { ...l, profileScore: ps, enrichmentQueue: queue, websiteConfidence: wc, channelQueue };
 }
 
 // ── Stats computation ──────────────────────────────────────────────────────
 function computeStats(leads) {
-  const sc = { 'New Lead':0,'Contacted':0,'Responded':0,'Meeting Booked':0,'No Response':0,'Not Relevant':0 };
+  const sc = { 'New Lead':0,'Contacted':0,'Email Sent':0,'Responded':0,'Meeting Booked':0,'No Response':0,'Not Relevant':0 };
   const pc = { High:0, Medium:0, Low:0 };
   const sectors = {};
   const scores  = { '90-100':0,'75-89':0,'60-74':0,'50-59':0,'<50':0 };
@@ -888,7 +907,7 @@ function computeStats(leads) {
     else if (scr >= 60) scores['60-74']++;
     else if (scr >= 50) scores['50-59']++;
     else scores['<50']++;
-    if (['Contacted','Responded','Meeting Booked'].includes(l.status)) contacted++;
+    if (['Contacted','Email Sent','Responded','Meeting Booked'].includes(l.status)) contacted++;
     if (['Responded','Meeting Booked'].includes(l.status)) responded++;
     if (l.status === 'Meeting Booked') meetings++;
     if (['contracted','customer','won','closed won'].includes((l.status||'').toLowerCase())) contracted++;
@@ -955,7 +974,7 @@ function renderAll_data() {
 
 // ── Pipeline status ────────────────────────────────────────────────────────
 const STATUS_COLORS = {
-  'New Lead':'#6366F1','Contacted':'#F0B429','Responded':'#10B981',
+  'New Lead':'#6366F1','Contacted':'#F0B429','Email Sent':'#0EA5E9','Responded':'#10B981',
   'Meeting Booked':'#A569BD','No Response':'#EF4444','Not Relevant':'#546E7A'
 };
 
@@ -1042,7 +1061,7 @@ function priorityBadge(p) {
 }
 function statusBadge(s) {
   const cls = {
-    'New Lead':'badge-new','Contacted':'badge-contacted','Responded':'badge-responded',
+    'New Lead':'badge-new','Contacted':'badge-contacted','Email Sent':'badge-emailed','Responded':'badge-responded',
     'Meeting Booked':'badge-meeting','No Response':'badge-noresp','Not Relevant':'badge-notrel'
   }[s] || 'badge-low';
   return `<span class="badge ${cls}">${s||'—'}</span>`;
@@ -1051,6 +1070,11 @@ function queueBadge(q) {
   const cls = { Ready:'badge-ready', Research:'badge-research', Insufficient:'badge-insufficient' }[q] || 'badge-insufficient';
   const label = q === 'Insufficient' ? 'Needs Data' : (q || '—');
   return `<span class="badge ${cls}">${label}</span>`;
+}
+function channelBadge(cq) {
+  if (cq === 'Ready to email') return `<span class="badge badge-ch-email">Email</span>`;
+  if (cq === 'Ready to phone') return `<span class="badge badge-ch-phone">Phone</span>`;
+  return '';
 }
 
 function esc(s) {
@@ -1214,6 +1238,7 @@ function applyFiltersFromUrl() {
   set('all-status-filter', 'status');
   set('all-priority-filter', 'priority');
   set('all-queue-filter', 'queue');
+  set('all-channel-filter', 'channel');
   set('all-sort', 'sort');
   _sectorFilter = params.get('sector') || '';
 }
@@ -1225,6 +1250,7 @@ function syncFiltersToUrl() {
     status: document.getElementById('all-status-filter')?.value || '',
     priority: document.getElementById('all-priority-filter')?.value || '',
     queue: document.getElementById('all-queue-filter')?.value || '',
+    channel: document.getElementById('all-channel-filter')?.value || '',
     sort: document.getElementById('all-sort')?.value || '',
     sector: _sectorFilter || '',
   };
@@ -1236,7 +1262,7 @@ function syncFiltersToUrl() {
 }
 
 function clearAllFilters() {
-  ['search-input', 'all-status-filter', 'all-priority-filter', 'all-queue-filter']
+  ['search-input', 'all-status-filter', 'all-priority-filter', 'all-queue-filter', 'all-channel-filter']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   const sortEl = document.getElementById('all-sort');
   if (sortEl) sortEl.value = 'score';
@@ -1265,6 +1291,7 @@ function currentFilterSnapshot() {
     status: document.getElementById('all-status-filter')?.value || '',
     priority: document.getElementById('all-priority-filter')?.value || '',
     queue: document.getElementById('all-queue-filter')?.value || '',
+    channel: document.getElementById('all-channel-filter')?.value || '',
     sort: document.getElementById('all-sort')?.value || 'score',
     sector: _sectorFilter || '',
   };
@@ -1272,7 +1299,7 @@ function currentFilterSnapshot() {
 
 function saveCurrentView() {
   const snap = currentFilterSnapshot();
-  const isEmpty = !snap.q && !snap.status && !snap.priority && !snap.queue && !snap.sector && snap.sort === 'score';
+  const isEmpty = !snap.q && !snap.status && !snap.priority && !snap.queue && !snap.channel && !snap.sector && snap.sort === 'score';
   if (isEmpty) {
     alert('Set at least one filter before saving a view.');
     return;
@@ -1297,6 +1324,7 @@ function applySavedView(id) {
   setVal('all-status-filter', s.status);
   setVal('all-priority-filter', s.priority);
   setVal('all-queue-filter', s.queue);
+  setVal('all-channel-filter', s.channel);
   setVal('all-sort', s.sort || 'score');
   _sectorFilter = s.sector || '';
   document.querySelectorAll('#sector-chip-strip .chip').forEach(c => {
@@ -1373,6 +1401,7 @@ function leadCard(l) {
       ${l.postcode ? `<span style="color:var(--muted);font-size:11px">${esc(l.postcode)}</span>` : ''}
       ${statusBadge(l.status)}
       ${queueBadge(l.enrichmentQueue)}
+      ${channelBadge(l.channelQueue)}
     </div>
     <div class="lead-detail">
       ${l.director ? `<div><strong>Director:</strong> ${esc(l.director)}</div>` : ''}
@@ -1390,13 +1419,167 @@ function leadCard(l) {
     </div>
     ${flags}
     <div class="lead-actions" onclick="event.stopPropagation()">
-      ${l.status !== 'Contacted' ? `<button class="lead-action-btn contacted-btn" onclick="updateStatus('${l.id}','Contacted')">Mark Contacted</button>` : ''}
-      ${l.status !== 'Meeting Booked' ? `<button class="lead-action-btn" style="border-color:rgba(125,60,152,.4);color:#A569BD" onclick="updateStatus('${l.id}','Meeting Booked')">Meeting Booked</button>` : ''}
-      ${l.status === 'Not Relevant'
-        ? `<button class="lead-action-btn" style="border-color:rgba(99,102,241,.45);color:#A5B4FC" onclick="updateStatus('${l.id}','New Lead')">Add back to queue</button>`
-        : `<button class="lead-action-btn notrel-btn" onclick="markNotRelevant('${l.id}')">Not Relevant</button>`}
+      ${_emailDrafted.has(l.id) && l.status !== 'Email Sent'
+        ? `<button class="lead-action-btn marksent-btn" onclick="markEmailSent('${l.id}')">✓ Mark as sent</button>
+           <button class="lead-action-btn notrel-btn" onclick="cancelDraft('${l.id}')">Not sent</button>`
+        : `
+          ${['Contacted','Email Sent','Responded','Meeting Booked','Not Relevant'].includes(l.status) ? '' : l.email
+            ? `<button class="lead-action-btn draft-btn" onclick="draftEmail('${l.id}')">Draft email</button>
+               <button class="lead-action-btn" onclick="copyEmail('${l.id}')">Copy email</button>`
+            : `<button class="lead-action-btn contacted-btn" onclick="updateStatus('${l.id}','Contacted')">Mark Contacted</button>`}
+          ${['Meeting Booked','Not Relevant'].includes(l.status) ? '' : `<button class="lead-action-btn" style="border-color:rgba(125,60,152,.4);color:#A569BD" onclick="updateStatus('${l.id}','Meeting Booked')">Meeting Booked</button>`}
+          ${l.status !== 'New Lead' ? `<button class="lead-action-btn returnq-btn" onclick="updateStatus('${l.id}','New Lead')">Return to queue</button>` : ''}
+          ${l.status === 'Not Relevant' ? '' : `<button class="lead-action-btn notrel-btn" onclick="markNotRelevant('${l.id}')">Not Relevant</button>`}
+        `}
     </div>
   </div>`;
+}
+
+// ── Outreach email pre-fill (Outlook, no inbox access) ─────────────────────
+// Templates mirror the approved Google Doc copy. Tokens filled client-side.
+// Nothing is sent on Dougie's behalf: this only opens a pre-filled compose.
+const EMAIL_TEMPLATES = {
+  takeaway: {
+    subject: 'Fire safety for [Company] — quick question',
+    body:
+`Hi [Name],
+
+Congratulations on the new venture. I spotted that [Company] recently registered in your area, and as someone who has looked after fire safety for food businesses across Scotland for over twenty years, I always like to reach out early.
+
+Getting the right kit in place from the start is a lot simpler than catching up later, and it means one less thing on your list as you get the doors open.
+
+If you have not sorted your fire extinguishers, emergency lighting, or annual service yet, I would be happy to give you a quick quote. No obligation, just want to make sure you are covered properly.
+
+Worth a five-minute call?
+
+Best,
+Dougie
+MacFire Fire Protection`
+  },
+  hotel: {
+    subject: 'Fire protection for [Company]',
+    body:
+`Hi [Name],
+
+I came across [Company] and wanted to get in touch. We specialise in fire safety for hospitality businesses across Scotland, and with a new registration on record I thought it was worth a quick hello.
+
+Compliance requirements for overnight accommodation are specific, and getting the right advice early saves a lot of time and expense down the line.
+
+We handle everything: risk assessments, extinguishers, servicing and the annual checks your insurer will want to see. One point of contact, no jargon.
+
+If you are still putting things in place, I would be glad to help. Are you free for a quick chat this week?
+
+Best,
+Dougie
+MacFire Fire Protection`
+  },
+  hall: {
+    subject: 'Fire safety checks for [Company]',
+    body:
+`Hi [Name],
+
+I noticed [Company] has recently registered and wanted to make contact. We look after fire safety for community venues, church halls and meeting spaces across Scotland, and it is an area where compliance requirements can catch people out if they are not on top of them.
+
+If you are opening a new venue or taking on an existing one, the key things to have in place are a current fire risk assessment, the right extinguishers for the space, and a service plan to keep everything up to date.
+
+Happy to run through what you need at no charge, so you know exactly where you stand before you open the doors.
+
+Would that be useful?
+
+Best,
+Dougie
+MacFire Fire Protection`
+  },
+  leisure: {
+    subject: 'Fire protection for [Company]',
+    body:
+`Hi [Name],
+
+Congratulations on the new registration. We work with leisure and entertainment businesses across Scotland on fire safety, and I always like to reach out when I see a new venue coming through.
+
+With a space that will have members of the public through the door regularly, it is worth making sure your fire protection is right from the start. We cover everything from extinguishers and emergency lighting through to annual inspections and staff training.
+
+If you have not sorted this yet, I can get you a quote quickly. No pressure, just want to make sure you are in good shape.
+
+Worth a call?
+
+Best,
+Dougie
+MacFire Fire Protection`
+  },
+  general: {
+    subject: 'Fire safety — quick note for [Company]',
+    body:
+`Hi [Name],
+
+I noticed [Company] has recently come up on my radar and wanted to make contact. We work with businesses across Scotland on fire safety, from annual servicing through to full risk assessments, and we are used to stepping in when things have not been kept up to date.
+
+If you would like a quick overview of where things stand, I am happy to run through it with you. It would not take long and there is no commitment.
+
+Worth a five-minute call?
+
+Best,
+Dougie
+MacFire Fire Protection`
+  }
+};
+
+function pickTemplateKey(sector) {
+  const s = (sector || '').toLowerCase();
+  if (/takeaway|restaurant|food|cafe|café|catering|kitchen|bakery|chip/.test(s)) return 'takeaway';
+  if (/hotel|b&b|bed and breakfast|guest|accommodation|inn|lodge/.test(s))           return 'hotel';
+  if (/hall|community|church|venue|meeting|hospice|charity/.test(s))                  return 'hall';
+  if (/pool|gym|leisure|entertainment|club|sport|fitness|spa|salon/.test(s))          return 'leisure';
+  return 'general';
+}
+
+function buildEmail(l) {
+  const t = EMAIL_TEMPLATES[pickTemplateKey(l.sector)];
+  const company = (l.company || '').trim() || 'your business';
+  const firstName = (l.director || '').trim().split(/\s+/)[0] || '';
+  const name = firstName || 'there';
+  const fill = (str) => str.split('[Company]').join(company).split('[Name]').join(name);
+  return { subject: fill(t.subject), body: fill(t.body) };
+}
+
+// Transient set of leads whose draft has been opened, awaiting "Mark as sent".
+const _emailDrafted = new Set();
+
+function draftEmail(id) {
+  const l = _leads.find(x => x.id === id);
+  if (!l || !l.email) return;
+  const { subject, body } = buildEmail(l);
+  trackEvent('lead_email_drafted', compactLeadMeta(l));
+  const href = `mailto:${encodeURIComponent(l.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = href;
+  _emailDrafted.add(id);
+  renderAll_data();
+}
+
+async function copyEmail(id) {
+  const l = _leads.find(x => x.id === id);
+  if (!l || !l.email) return;
+  const { subject, body } = buildEmail(l);
+  const text = `To: ${l.email}\nSubject: ${subject}\n\n${body}`;
+  try {
+    await navigator.clipboard.writeText(text);
+    trackEvent('lead_email_copied', compactLeadMeta(l));
+    _emailDrafted.add(id);
+    renderAll_data();
+  } catch (e) {
+    console.error('Copy failed:', e);
+    window.prompt('Copy the email below:', text);
+  }
+}
+
+function markEmailSent(id) {
+  _emailDrafted.delete(id);
+  updateStatus(id, 'Email Sent');
+}
+
+function cancelDraft(id) {
+  _emailDrafted.delete(id);
+  renderAll_data();
 }
 
 // ── Not Relevant modal ────────────────────────────────────────────────────
@@ -1508,6 +1691,7 @@ function renderAll() {
   const st = document.getElementById('all-status-filter')?.value || '';
   const pr = document.getElementById('all-priority-filter')?.value || '';
   const qu = document.getElementById('all-queue-filter')?.value || '';
+  const ch = document.getElementById('all-channel-filter')?.value || '';
   const sec = _sectorFilter;
   const sort = document.getElementById('all-sort')?.value || 'score';
   const filtered = _leads.filter(l => {
@@ -1519,6 +1703,7 @@ function renderAll() {
       && (!st || l.status === st)
       && (!pr || l.priority === pr)
       && (!qu || l.enrichmentQueue === qu)
+      && (!ch || l.channelQueue === ch)
       && (!sec || l.sector === sec);
   }).sort((a, b) => {
     if (sort === 'date') return (b.scout_date || '').localeCompare(a.scout_date || '') || (b.score || 0) - (a.score || 0);
