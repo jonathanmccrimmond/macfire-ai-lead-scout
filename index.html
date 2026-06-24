@@ -112,6 +112,9 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
 .badge-ready{background:rgba(16,185,129,.2);color:#34D399;border:1px solid rgba(16,185,129,.4)}
 .badge-research{background:rgba(245,158,11,.2);color:#FBBF24;border:1px solid rgba(245,158,11,.4)}
 .badge-insufficient{background:rgba(148,163,184,.18);color:#CBD5E1;border:1px solid rgba(148,163,184,.35)}
+.badge-emailed{background:rgba(14,165,233,.2);color:#38BDF8;border:1px solid rgba(14,165,233,.4)}
+.badge-ch-email{background:rgba(99,102,241,.15);color:#A5B4FC;border:1px solid rgba(99,102,241,.3);font-size:10px}
+.badge-ch-phone{background:rgba(16,185,129,.15);color:#6EE7B7;border:1px solid rgba(16,185,129,.3);font-size:10px}
 
 /* ── Lead cards ───────────────────────────────────────────────── */
 .lead-card{background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:14px 16px;margin-bottom:10px}
@@ -448,6 +451,7 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
             <option value="">All statuses</option>
             <option value="New Lead">New Lead</option>
             <option value="Contacted">Contacted</option>
+            <option value="Email Sent">Email Sent</option>
             <option value="Responded">Responded</option>
             <option value="Meeting Booked">Meeting Booked</option>
             <option value="No Response">No Response</option>
@@ -464,6 +468,12 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
             <option value="Ready">Ready</option>
             <option value="Research">Research</option>
             <option value="Insufficient">Needs Data</option>
+          </select>
+          <select id="all-channel-filter" onchange="renderAll()">
+            <option value="">All channels</option>
+            <option value="Ready to email">Ready to email</option>
+            <option value="Ready to phone">Ready to phone</option>
+            <option value="Needs data">Needs data</option>
           </select>
           <select id="all-sort" onchange="renderAll()">
             <option value="score">Sort by score</option>
@@ -866,12 +876,18 @@ function enrichLead(l) {
 
   const wc = (l.website || '').trim() ? 'Verified' : (l.domain || '').trim() ? 'Estimated' : 'Not Available';
 
-  return { ...l, profileScore: ps, enrichmentQueue: queue, websiteConfidence: wc };
+  const channelQueue = (l.email || '').trim()
+    ? 'Ready to email'
+    : (l.phone || '').trim()
+      ? 'Ready to phone'
+      : 'Needs data';
+
+  return { ...l, profileScore: ps, enrichmentQueue: queue, websiteConfidence: wc, channelQueue };
 }
 
 // ── Stats computation ──────────────────────────────────────────────────────
 function computeStats(leads) {
-  const sc = { 'New Lead':0,'Contacted':0,'Responded':0,'Meeting Booked':0,'No Response':0,'Not Relevant':0 };
+  const sc = { 'New Lead':0,'Contacted':0,'Email Sent':0,'Responded':0,'Meeting Booked':0,'No Response':0,'Not Relevant':0 };
   const pc = { High:0, Medium:0, Low:0 };
   const sectors = {};
   const scores  = { '90-100':0,'75-89':0,'60-74':0,'50-59':0,'<50':0 };
@@ -888,7 +904,7 @@ function computeStats(leads) {
     else if (scr >= 60) scores['60-74']++;
     else if (scr >= 50) scores['50-59']++;
     else scores['<50']++;
-    if (['Contacted','Responded','Meeting Booked'].includes(l.status)) contacted++;
+    if (['Contacted','Email Sent','Responded','Meeting Booked'].includes(l.status)) contacted++;
     if (['Responded','Meeting Booked'].includes(l.status)) responded++;
     if (l.status === 'Meeting Booked') meetings++;
     if (['contracted','customer','won','closed won'].includes((l.status||'').toLowerCase())) contracted++;
@@ -955,7 +971,7 @@ function renderAll_data() {
 
 // ── Pipeline status ────────────────────────────────────────────────────────
 const STATUS_COLORS = {
-  'New Lead':'#6366F1','Contacted':'#F0B429','Responded':'#10B981',
+  'New Lead':'#6366F1','Contacted':'#F0B429','Email Sent':'#0EA5E9','Responded':'#10B981',
   'Meeting Booked':'#A569BD','No Response':'#EF4444','Not Relevant':'#546E7A'
 };
 
@@ -1042,7 +1058,7 @@ function priorityBadge(p) {
 }
 function statusBadge(s) {
   const cls = {
-    'New Lead':'badge-new','Contacted':'badge-contacted','Responded':'badge-responded',
+    'New Lead':'badge-new','Contacted':'badge-contacted','Email Sent':'badge-emailed','Responded':'badge-responded',
     'Meeting Booked':'badge-meeting','No Response':'badge-noresp','Not Relevant':'badge-notrel'
   }[s] || 'badge-low';
   return `<span class="badge ${cls}">${s||'—'}</span>`;
@@ -1051,6 +1067,11 @@ function queueBadge(q) {
   const cls = { Ready:'badge-ready', Research:'badge-research', Insufficient:'badge-insufficient' }[q] || 'badge-insufficient';
   const label = q === 'Insufficient' ? 'Needs Data' : (q || '—');
   return `<span class="badge ${cls}">${label}</span>`;
+}
+function channelBadge(cq) {
+  if (cq === 'Ready to email') return `<span class="badge badge-ch-email">Email</span>`;
+  if (cq === 'Ready to phone') return `<span class="badge badge-ch-phone">Phone</span>`;
+  return '';
 }
 
 function esc(s) {
@@ -1214,6 +1235,7 @@ function applyFiltersFromUrl() {
   set('all-status-filter', 'status');
   set('all-priority-filter', 'priority');
   set('all-queue-filter', 'queue');
+  set('all-channel-filter', 'channel');
   set('all-sort', 'sort');
   _sectorFilter = params.get('sector') || '';
 }
@@ -1225,6 +1247,7 @@ function syncFiltersToUrl() {
     status: document.getElementById('all-status-filter')?.value || '',
     priority: document.getElementById('all-priority-filter')?.value || '',
     queue: document.getElementById('all-queue-filter')?.value || '',
+    channel: document.getElementById('all-channel-filter')?.value || '',
     sort: document.getElementById('all-sort')?.value || '',
     sector: _sectorFilter || '',
   };
@@ -1236,7 +1259,7 @@ function syncFiltersToUrl() {
 }
 
 function clearAllFilters() {
-  ['search-input', 'all-status-filter', 'all-priority-filter', 'all-queue-filter']
+  ['search-input', 'all-status-filter', 'all-priority-filter', 'all-queue-filter', 'all-channel-filter']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   const sortEl = document.getElementById('all-sort');
   if (sortEl) sortEl.value = 'score';
@@ -1265,6 +1288,7 @@ function currentFilterSnapshot() {
     status: document.getElementById('all-status-filter')?.value || '',
     priority: document.getElementById('all-priority-filter')?.value || '',
     queue: document.getElementById('all-queue-filter')?.value || '',
+    channel: document.getElementById('all-channel-filter')?.value || '',
     sort: document.getElementById('all-sort')?.value || 'score',
     sector: _sectorFilter || '',
   };
@@ -1272,7 +1296,7 @@ function currentFilterSnapshot() {
 
 function saveCurrentView() {
   const snap = currentFilterSnapshot();
-  const isEmpty = !snap.q && !snap.status && !snap.priority && !snap.queue && !snap.sector && snap.sort === 'score';
+  const isEmpty = !snap.q && !snap.status && !snap.priority && !snap.queue && !snap.channel && !snap.sector && snap.sort === 'score';
   if (isEmpty) {
     alert('Set at least one filter before saving a view.');
     return;
@@ -1297,6 +1321,7 @@ function applySavedView(id) {
   setVal('all-status-filter', s.status);
   setVal('all-priority-filter', s.priority);
   setVal('all-queue-filter', s.queue);
+  setVal('all-channel-filter', s.channel);
   setVal('all-sort', s.sort || 'score');
   _sectorFilter = s.sector || '';
   document.querySelectorAll('#sector-chip-strip .chip').forEach(c => {
@@ -1373,6 +1398,7 @@ function leadCard(l) {
       ${l.postcode ? `<span style="color:var(--muted);font-size:11px">${esc(l.postcode)}</span>` : ''}
       ${statusBadge(l.status)}
       ${queueBadge(l.enrichmentQueue)}
+      ${channelBadge(l.channelQueue)}
     </div>
     <div class="lead-detail">
       ${l.director ? `<div><strong>Director:</strong> ${esc(l.director)}</div>` : ''}
@@ -1390,7 +1416,9 @@ function leadCard(l) {
     </div>
     ${flags}
     <div class="lead-actions" onclick="event.stopPropagation()">
-      ${l.status !== 'Contacted' ? `<button class="lead-action-btn contacted-btn" onclick="updateStatus('${l.id}','Contacted')">Mark Contacted</button>` : ''}
+      ${['Contacted','Email Sent','Responded','Meeting Booked'].includes(l.status) ? '' : l.email
+        ? `<button class="lead-action-btn contacted-btn" onclick="updateStatus('${l.id}','Email Sent')">Email Sent</button>`
+        : `<button class="lead-action-btn contacted-btn" onclick="updateStatus('${l.id}','Contacted')">Mark Contacted</button>`}
       ${l.status !== 'Meeting Booked' ? `<button class="lead-action-btn" style="border-color:rgba(125,60,152,.4);color:#A569BD" onclick="updateStatus('${l.id}','Meeting Booked')">Meeting Booked</button>` : ''}
       ${l.status === 'Not Relevant'
         ? `<button class="lead-action-btn" style="border-color:rgba(99,102,241,.45);color:#A5B4FC" onclick="updateStatus('${l.id}','New Lead')">Add back to queue</button>`
@@ -1508,6 +1536,7 @@ function renderAll() {
   const st = document.getElementById('all-status-filter')?.value || '';
   const pr = document.getElementById('all-priority-filter')?.value || '';
   const qu = document.getElementById('all-queue-filter')?.value || '';
+  const ch = document.getElementById('all-channel-filter')?.value || '';
   const sec = _sectorFilter;
   const sort = document.getElementById('all-sort')?.value || 'score';
   const filtered = _leads.filter(l => {
@@ -1519,6 +1548,7 @@ function renderAll() {
       && (!st || l.status === st)
       && (!pr || l.priority === pr)
       && (!qu || l.enrichmentQueue === qu)
+      && (!ch || l.channelQueue === ch)
       && (!sec || l.sector === sec);
   }).sort((a, b) => {
     if (sort === 'date') return (b.scout_date || '').localeCompare(a.scout_date || '') || (b.score || 0) - (a.score || 0);
