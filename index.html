@@ -1346,6 +1346,18 @@ document.addEventListener('click', (ev) => {
   if (wrap && !wrap.contains(ev.target)) closeViewsMenu();
 });
 
+function draftMailto(l) {
+  if (!l.email) return '';
+  const firstName = (l.director || '').split(' ')[0];
+  const greeting = firstName ? `Hi ${firstName},` : 'Hi,';
+  const company = l.company || 'your business';
+  const subject = encodeURIComponent(`Fire protection review for ${company}`);
+  const body = encodeURIComponent(
+    `${greeting}\n\nWe're MacFire, a Scottish fire protection company. We noticed there has been a recent change to your business registration.\n\nWhether you're setting up a new business or going through a change of ownership, this is a good moment to review your fire protection and make sure any risk assessments are up to date. We can make that straightforward.\n\nHappy to have a quick conversation if that would be useful.\n\nKind regards,\nMacFire`
+  );
+  return `mailto:${l.email}?subject=${subject}&body=${body}`;
+}
+
 function leadCard(l) {
   const score   = l.score ? `<span class="lead-score ${scoreClass(l.score)}">${l.score}</span>` : '';
   const flags   = l.flags ? `<div class="flags-text" title="${esc(l.flags)}">⚑ ${esc(l.flags)}</div>` : '';
@@ -1392,6 +1404,7 @@ function leadCard(l) {
     </div>
     ${flags}
     <div class="lead-actions" onclick="event.stopPropagation()">
+      ${l.email ? `<a class="lead-action-btn" href="${esc(draftMailto(l))}" onclick="event.stopPropagation()" data-analytics-event="lead_email_drafted" data-lead-id="${esc(l.id)}" style="border-color:rgba(129,140,248,.4);color:#818CF8">Draft email</a>` : ''}
       ${l.status !== 'Contacted' ? `<button class="lead-action-btn contacted-btn" onclick="updateStatus('${l.id}','Contacted')">Mark Contacted</button>` : ''}
       ${l.status !== 'Meeting Booked' ? `<button class="lead-action-btn" style="border-color:rgba(125,60,152,.4);color:#A569BD" onclick="updateStatus('${l.id}','Meeting Booked')">Meeting Booked</button>` : ''}
       ${l.status === 'Not Relevant'

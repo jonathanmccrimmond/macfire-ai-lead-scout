@@ -349,6 +349,7 @@ a{color:inherit;text-decoration:none}
 .lead-detail{color:var(--muted);font-size:13px;line-height:1.6}
 .lead-detail strong{color:var(--ink-2);font-weight:600}
 .lead-detail > div{margin-bottom:1px}
+.flags-text{font-size:11px;color:var(--muted);max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:6px}
 .nr-notes-snippet{font-size:11.5px;color:var(--faint);font-style:italic;
   margin-top:8px;padding-top:8px;border-top:1px solid var(--line-soft)}
 .lead-actions{display:flex;gap:7px;margin-top:14px;flex-wrap:wrap}
@@ -1478,6 +1479,18 @@ document.addEventListener('click', ev => {
 });
 
 // === Lead card ===========================================================
+function draftMailto(l) {
+  if (!l.email) return '';
+  const firstName = (l.director || '').split(' ')[0];
+  const greeting = firstName ? `Hi ${firstName},` : 'Hi,';
+  const company = l.company || 'your business';
+  const subject = encodeURIComponent(`Fire protection review for ${company}`);
+  const body = encodeURIComponent(
+    `${greeting}\n\nWe're MacFire, a Scottish fire protection company. We noticed there has been a recent change to your business registration.\n\nWhether you're setting up a new business or going through a change of ownership, this is a good moment to review your fire protection and make sure any risk assessments are up to date. We can make that straightforward.\n\nHappy to have a quick conversation if that would be useful.\n\nKind regards,\nMacFire`
+  );
+  return `mailto:${l.email}?subject=${subject}&body=${body}`;
+}
+
 function leadCard(l) {
   const maps = l.maps_url
     ? `<a class="btn-sm" href="${esc(l.maps_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" data-analytics-event="lead_maps_opened" data-lead-id="${esc(l.id)}">Map</a>`
@@ -1514,12 +1527,18 @@ function leadCard(l) {
       ${l.address   ? `<div><strong>Address:</strong> ${esc(l.address)}</div>` : ''}
       ${l.phone     ? `<div><strong>Phone:</strong> ${esc(l.phone)}</div>` : ''}
       ${email       ? `<div><strong>Email:</strong> ${email}</div>` : ''}
-      ${website     ? `<div><strong>Website:</strong> ${website}</div>` : ''}
+      ${website     ? `<div><strong>Website:</strong> ${website}${l.websiteConfidence ? ` <span style="font-size:10px;color:var(--muted)">(${esc(l.websiteConfidence)})</span>` : ''}</div>` : ''}
+      ${l.incorporated ? `<div><strong>Incorporated:</strong> ${esc(l.incorporated)}</div>` : ''}
+      ${l.google_places ? `<div><strong>Google:</strong> ${esc(l.google_places)}</div>` : ''}
+      ${[l.premises_confidence,l.operational_confidence,l.compliance_confidence,l.contactability_confidence].some(v=>v!==null&&v!==undefined&&v!=='') ? `<div><strong>Confidence:</strong> P ${esc(l.premises_confidence??'—')} · O ${esc(l.operational_confidence??'—')} · C ${esc(l.compliance_confidence??'—')} · X ${esc(l.contactability_confidence??'—')}</div>` : ''}
+      ${l.profile_status ? `<div><strong>Profile:</strong> ${esc(l.profile_status.replace(/_/g,' '))}${l.missing_profile_fields ? ` · Missing ${esc(l.missing_profile_fields)}` : ''}</div>` : ''}
       ${l.reasoning ? `<div><strong>Reason:</strong> ${esc(l.reasoning)}</div>` : ''}
       ${l.relevance_notes ? `<div class="nr-notes-snippet">Notes: ${esc(l.relevance_notes)}</div>` : ''}
     </div>
+    ${l.flags ? `<div class="flags-text" title="${esc(l.flags)}">&#9873; ${esc(l.flags)}</div>` : ''}
     <div class="lead-actions" onclick="event.stopPropagation()">
       ${maps}${sv}
+      ${l.email ? `<a class="btn-sm" href="${esc(draftMailto(l))}" onclick="event.stopPropagation()" data-analytics-event="lead_email_drafted" data-lead-id="${esc(l.id)}">Draft email</a>` : ''}
       ${l.status!=='Contacted'      ? `<button class="btn-sm" onclick="updateStatus('${l.id}','Contacted')">Mark contacted</button>` : ''}
       ${l.status!=='Meeting Booked' ? `<button class="btn-sm" onclick="updateStatus('${l.id}','Meeting Booked')">Meeting booked</button>` : ''}
       ${addBack}
