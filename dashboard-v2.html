@@ -1057,6 +1057,7 @@ function computeStats(leads) {
   const todayLeads = lastDate ? leads.filter(l => l.scout_date === lastDate) : [];
   const todayPriority = { High:0, Medium:0, Low:0 };
   todayLeads.forEach(l => { if (todayPriority[l.priority] !== undefined) todayPriority[l.priority]++; });
+  const high = leads.filter(l => l.priority === 'High' && l.status !== 'Not Relevant');
   return { sc, pc, sectors, scores, contacted, responded, meetings, contracted,
     queueCounts, high, dates, lastDate, todayLeads, todayPriority };
 }
