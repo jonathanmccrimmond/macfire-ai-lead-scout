@@ -620,7 +620,7 @@ a{color:inherit;text-decoration:none}
         <div class="chart-wrap"><canvas id="sectorChart"></canvas></div>
       </div>
       <div class="panel">
-        <h3>Score distribution (high priority)</h3>
+        <h3>Score distribution</h3>
         <div class="chart-wrap"><canvas id="scoreChart"></canvas></div>
       </div>
     </div>
@@ -986,6 +986,12 @@ function computeStats(leads) {
   leads.forEach(l => {
     if (sc[l.status] !== undefined) sc[l.status]++;
     if (l.priority === 'High' && scHigh[l.status] !== undefined) scHigh[l.status]++;
+    const scr = l.score || 0;
+    if (scr >= 90) scores['90-100']++;
+    else if (scr >= 75) scores['75-89']++;
+    else if (scr >= 60) scores['60-74']++;
+    else if (scr >= 50) scores['50-59']++;
+    else scores['<50']++;
     if (['Contacted','Email Sent','Responded','Meeting Booked'].includes(l.status)) contacted++;
     if (['Responded','Meeting Booked'].includes(l.status)) responded++;
     if (l.status === 'Meeting Booked') meetings++;
@@ -996,12 +1002,6 @@ function computeStats(leads) {
     if (pc[l.priority] !== undefined) pc[l.priority]++;
     const s = l.sector || 'Other';
     sectors[s] = (sectors[s]||0) + 1;
-    const scr = l.score || 0;
-    if (scr >= 90) scores['90-100']++;
-    else if (scr >= 75) scores['75-89']++;
-    else if (scr >= 60) scores['60-74']++;
-    else if (scr >= 50) scores['50-59']++;
-    else scores['<50']++;
   });
   const queueCounts = {
     Ready:        leads.filter(l =>                          l.enrichmentQueue === 'Ready'        && l.status !== 'Not Relevant').length,
