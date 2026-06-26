@@ -364,9 +364,9 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
       <div class="sub">Score 75+</div>
     </div>
     <div class="stat-card">
-      <div class="label">Email Queue</div>
+      <div class="label">Qualified</div>
       <div class="value" style="color:var(--green)" id="kpi-ready">—</div>
-      <div class="sub">Has email, not yet sent</div>
+      <div class="sub">Email or phone, not yet contacted</div>
     </div>
     <div class="stat-card">
       <div class="label">Contacted</div>
@@ -405,7 +405,7 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
       <div class="tabs">
         <button class="tab-btn active" data-tab="email-queue">Email Queue <span id="tab-count-email-queue" style="color:var(--muted);font-size:11px;margin-left:4px"></span></button>
         <button class="tab-btn" data-tab="phone-queue">Phone Queue <span id="tab-count-phone-queue" style="color:var(--muted);font-size:11px;margin-left:4px"></span></button>
-        <button class="tab-btn" data-tab="outreach">Outreach <span id="tab-count-outreach" style="color:var(--muted);font-size:11px;margin-left:4px"></span></button>
+        <button class="tab-btn" data-tab="outreach">Contacted <span id="tab-count-outreach" style="color:var(--muted);font-size:11px;margin-left:4px"></span></button>
         <button class="tab-btn" data-tab="responded">Responded <span id="tab-count-responded" style="color:var(--muted);font-size:11px;margin-left:4px"></span></button>
         <button class="tab-btn" data-tab="research">Research <span id="tab-count-research" style="color:var(--muted);font-size:11px;margin-left:4px"></span></button>
         <button class="tab-btn" data-tab="not-relevant">Not Relevant <span id="tab-count-not-relevant" style="color:var(--muted);font-size:11px;margin-left:4px"></span></button>
@@ -429,7 +429,7 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
 
       <div class="tab-pane" id="tab-outreach">
         <div class="section-header">
-          <div class="section-title">Outreach in progress</div>
+          <div class="section-title">Contacted</div>
           <div class="section-badge" id="outreach-count-badge">0</div>
         </div>
         <div id="outreach-container"><div class="loading">Loading…</div></div>
@@ -445,7 +445,7 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
 
       <div class="tab-pane" id="tab-research">
         <div class="section-header">
-          <div class="section-title">Needs contact info</div>
+          <div class="section-title">Needs contact info (high priority)</div>
           <div class="section-badge" id="research-count-badge">0</div>
         </div>
         <div id="research-container"><div class="loading">Loading…</div></div>
@@ -893,8 +893,9 @@ function renderAll_data() {
   document.getElementById('kpi-total').textContent      = _leads.length;
   document.getElementById('kpi-days').textContent       = `${stats.dates.length} scout run${stats.dates.length !== 1 ? 's' : ''}`;
   document.getElementById('kpi-high').textContent       = stats.pc.High;
-  const _emailQ = _leads.filter(l => l.email && !['Email Sent','Contacted','Responded','Meeting Booked','Not Relevant'].includes(l.status));
-  document.getElementById('kpi-ready').textContent      = _emailQ.length;
+  const _eQ = _leads.filter(l => l.email && isValidEmail(l.email) && !['Email Sent','Contacted','Responded','Meeting Booked','Not Relevant'].includes(l.status));
+  const _pQ = _leads.filter(l => (!l.email || !isValidEmail(l.email)) && l.phone && !['Email Sent','Contacted','Responded','Meeting Booked','Not Relevant'].includes(l.status));
+  document.getElementById('kpi-ready').textContent      = _eQ.length + _pQ.length;
   document.getElementById('kpi-contacted').textContent  = stats.contacted;
   document.getElementById('kpi-responded').textContent  = `${stats.responded} responded`;
   document.getElementById('kpi-meetings').textContent   = stats.meetings;
@@ -1588,13 +1589,24 @@ async function updateStatus(id, newStatus, notes) {
 // ── Render sections ────────────────────────────────────────────────────────
 const _ACTIONED = ['Email Sent','Contacted','Responded','Meeting Booked','Not Relevant'];
 
+const _BAD_DOMAINS = new Set(['email.com','domain.com','example.com','example.co.uk',
+  'test.com','placeholder.com','noemail.com','noemail.co.uk','nodomain.com','none.com']);
+const _BAD_LOCALS  = new Set(['you','user','noemail','no-email','noreply','no-reply','null','undefined']);
+function isValidEmail(e) {
+  if (!e || !e.includes('@')) return false;
+  const at = e.toLowerCase().lastIndexOf('@');
+  const local = e.slice(0, at).toLowerCase();
+  const domain = e.slice(at + 1).toLowerCase();
+  return !_BAD_DOMAINS.has(domain) && !_BAD_LOCALS.has(local);
+}
+
 function _setTabCount(id, n) {
   const el = document.getElementById(id);
   if (el) el.textContent = n ? `(${n})` : '';
 }
 
 function renderEmailQueue() {
-  const leads = _leads.filter(l => l.email && !_ACTIONED.includes(l.status))
+  const leads = _leads.filter(l => l.email && isValidEmail(l.email) && !_ACTIONED.includes(l.status))
     .sort((a,b) => (b.score||0)-(a.score||0));
   _setTabCount('tab-count-email-queue', leads.length);
   const badge = document.getElementById('email-queue-count-badge');
@@ -1605,7 +1617,7 @@ function renderEmailQueue() {
 }
 
 function renderPhoneQueue() {
-  const leads = _leads.filter(l => !l.email && l.phone && !_ACTIONED.includes(l.status))
+  const leads = _leads.filter(l => (!l.email || !isValidEmail(l.email)) && l.phone && !_ACTIONED.includes(l.status))
     .sort((a,b) => (b.score||0)-(a.score||0));
   _setTabCount('tab-count-phone-queue', leads.length);
   const badge = document.getElementById('phone-queue-count-badge');
@@ -1638,7 +1650,7 @@ function renderResponded() {
 }
 
 function renderResearch() {
-  const leads = _leads.filter(l => !l.email && !l.phone && l.status !== 'Not Relevant')
+  const leads = _leads.filter(l => (!l.email || !isValidEmail(l.email)) && !l.phone && l.priority === 'High' && l.status !== 'Not Relevant')
     .sort((a,b) => (b.score||0)-(a.score||0));
   _setTabCount('tab-count-research', leads.length);
   const badge = document.getElementById('research-count-badge');

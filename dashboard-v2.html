@@ -568,9 +568,9 @@ a{color:inherit;text-decoration:none}
       <div class="sub">Score 75+</div>
     </div>
     <div class="stat-card">
-      <div class="label">Email Queue</div>
+      <div class="label">Qualified</div>
       <div class="value num v2-amber" id="kpi-ready">—</div>
-      <div class="sub">Has email, not yet sent</div>
+      <div class="sub">Email or phone, not yet contacted</div>
     </div>
     <div class="stat-card">
       <div class="label">Contacted</div>
@@ -637,7 +637,7 @@ a{color:inherit;text-decoration:none}
   <nav class="tabs">
     <button class="tab-btn active" data-tab="email-queue">Email Queue<span class="tab-count" id="tc-email-queue">0</span></button>
     <button class="tab-btn" data-tab="phone-queue">Phone Queue<span class="tab-count" id="tc-phone-queue">0</span></button>
-    <button class="tab-btn" data-tab="outreach">Outreach<span class="tab-count" id="tc-outreach">0</span></button>
+    <button class="tab-btn" data-tab="outreach">Contacted<span class="tab-count" id="tc-outreach">0</span></button>
     <button class="tab-btn" data-tab="responded">Responded<span class="tab-count" id="tc-responded">0</span></button>
     <button class="tab-btn" data-tab="research">Research<span class="tab-count" id="tc-research">0</span></button>
     <button class="tab-btn" data-tab="not-relevant">Not relevant<span class="tab-count" id="tc-not-relevant">0</span></button>
@@ -661,7 +661,7 @@ a{color:inherit;text-decoration:none}
 
   <div id="tab-outreach" class="tab-pane">
     <div class="section-header">
-      <h2 class="section-title">Outreach in progress</h2>
+      <h2 class="section-title">Contacted</h2>
       <span class="section-meta">Email sent or call made, awaiting response</span>
     </div>
     <div class="lead-list" id="outreach-container"><div class="loading">Loading</div></div>
@@ -678,7 +678,7 @@ a{color:inherit;text-decoration:none}
   <div id="tab-research" class="tab-pane">
     <div class="section-header">
       <h2 class="section-title">Needs contact info</h2>
-      <span class="section-meta">No email or phone on file yet, needs research before outreach</span>
+      <span class="section-meta">High priority leads with no valid contact info yet</span>
     </div>
     <div class="lead-list" id="research-container"><div class="loading">Loading</div></div>
   </div>
@@ -1030,8 +1030,9 @@ function renderAll_data() {
   document.getElementById('kpi-total').textContent        = _leads.length;
   document.getElementById('kpi-days').textContent         = `${stats.dates.length} scout run${stats.dates.length !== 1 ? 's' : ''}`;
   document.getElementById('kpi-high').textContent         = stats.pc.High;
-  const _emailQ = _leads.filter(l => l.email && !['Email Sent','Contacted','Responded','Meeting Booked','Not Relevant'].includes(l.status));
-  document.getElementById('kpi-ready').textContent        = _emailQ.length;
+  const _eQ = _leads.filter(l => l.email && isValidEmail(l.email) && !['Email Sent','Contacted','Responded','Meeting Booked','Not Relevant'].includes(l.status));
+  const _pQ = _leads.filter(l => (!l.email || !isValidEmail(l.email)) && l.phone && !['Email Sent','Contacted','Responded','Meeting Booked','Not Relevant'].includes(l.status));
+  document.getElementById('kpi-ready').textContent        = _eQ.length + _pQ.length;
   document.getElementById('kpi-contacted').textContent    = stats.contacted;
   document.getElementById('kpi-responded').textContent    = `${stats.responded} responded`;
   document.getElementById('kpi-meetings').textContent     = stats.meetings;
@@ -1054,11 +1055,11 @@ function renderAll_data() {
   }
 
   const _DONE    = ['Email Sent','Contacted','Responded','Meeting Booked','Not Relevant'];
-  const emailQ   = _leads.filter(l => l.email && !_DONE.includes(l.status));
-  const phoneQ   = _leads.filter(l => !l.email && l.phone && !_DONE.includes(l.status));
+  const emailQ   = _leads.filter(l => l.email && isValidEmail(l.email) && !_DONE.includes(l.status));
+  const phoneQ   = _leads.filter(l => (!l.email || !isValidEmail(l.email)) && l.phone && !_DONE.includes(l.status));
   const outreach = _leads.filter(l => ['Email Sent','Contacted'].includes(l.status));
   const responded= _leads.filter(l => ['Responded','Meeting Booked'].includes(l.status));
-  const research = _leads.filter(l => !l.email && !l.phone && l.status !== 'Not Relevant');
+  const research = _leads.filter(l => (!l.email || !isValidEmail(l.email)) && !l.phone && l.priority === 'High' && l.status !== 'Not Relevant');
   const nrLeads  = _leads.filter(l => l.status === 'Not Relevant');
   setTabCount('tc-email-queue', emailQ.length);
   setTabCount('tc-phone-queue', phoneQ.length);
@@ -1696,15 +1697,26 @@ async function updateStatus(id, newStatus, notes) {
 // === Render sections =====================================================
 const _ACTIONED = ['Email Sent','Contacted','Responded','Meeting Booked','Not Relevant'];
 
+const _BAD_DOMAINS = new Set(['email.com','domain.com','example.com','example.co.uk',
+  'test.com','placeholder.com','noemail.com','noemail.co.uk','nodomain.com','none.com']);
+const _BAD_LOCALS  = new Set(['you','user','noemail','no-email','noreply','no-reply','null','undefined']);
+function isValidEmail(e) {
+  if (!e || !e.includes('@')) return false;
+  const at = e.toLowerCase().lastIndexOf('@');
+  const local = e.slice(0, at).toLowerCase();
+  const domain = e.slice(at + 1).toLowerCase();
+  return !_BAD_DOMAINS.has(domain) && !_BAD_LOCALS.has(local);
+}
+
 function renderEmailQueue() {
-  const leads = _leads.filter(l => l.email && !_ACTIONED.includes(l.status))
+  const leads = _leads.filter(l => l.email && isValidEmail(l.email) && !_ACTIONED.includes(l.status))
     .sort((a,b) => (b.score||0)-(a.score||0));
   document.getElementById('email-queue-container').innerHTML = leads.length
     ? leads.slice(0,30).map(leadCard).join('')
     : '<div class="empty">No leads ready to email.</div>';
 }
 function renderPhoneQueue() {
-  const leads = _leads.filter(l => !l.email && l.phone && !_ACTIONED.includes(l.status))
+  const leads = _leads.filter(l => (!l.email || !isValidEmail(l.email)) && l.phone && !_ACTIONED.includes(l.status))
     .sort((a,b) => (b.score||0)-(a.score||0));
   document.getElementById('phone-queue-container').innerHTML = leads.length
     ? leads.slice(0,30).map(leadCard).join('')
@@ -1725,7 +1737,7 @@ function renderResponded() {
     : '<div class="empty">No responses yet.</div>';
 }
 function renderResearch() {
-  const leads = _leads.filter(l => !l.email && !l.phone && l.status !== 'Not Relevant')
+  const leads = _leads.filter(l => (!l.email || !isValidEmail(l.email)) && !l.phone && l.priority === 'High' && l.status !== 'Not Relevant')
     .sort((a,b) => (b.score||0)-(a.score||0));
   document.getElementById('research-container').innerHTML = leads.length
     ? leads.slice(0,30).map(leadCard).join('')
