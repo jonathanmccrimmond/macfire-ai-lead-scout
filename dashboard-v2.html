@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <link rel="icon" href="favicon.ico" sizes="any"/>
 <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
-<title>MacFire AI Scout — Lead Dashboard</title>
+<title>MacFire AI Scout - Lead Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="config.js" onerror="window.__configMissing=true"></script>
@@ -492,14 +492,14 @@ a{color:inherit;text-decoration:none}
         <text x="135" y="83" text-anchor="middle" dominant-baseline="central" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="17" fill="#C31E1F" letter-spacing="1.5">Fire Protection Company</text>
       </svg>
     </div>
-    <h2>Connect to Supabase</h2>
-    <p>Enter your Supabase project URL and anon key. These are saved in your browser and never committed to the repository.</p>
+    <h2>Connect to the production database</h2>
+    <p>Enter the project URL and anon key. These are saved in your browser and never committed to the repository.</p>
     <div class="field-group">
-      <label>Supabase Project URL</label>
-      <input type="text" id="cfg-url" placeholder="https://xxxx.supabase.co" autocomplete="off"/>
+      <label>Project URL</label>
+      <input type="text" id="cfg-url" placeholder="https://project-url.example" autocomplete="off"/>
     </div>
     <div class="field-group">
-      <label>Supabase Anon Key</label>
+      <label>Anon key</label>
       <input type="text" id="cfg-key" placeholder="eyJhbGci..." autocomplete="off"/>
     </div>
     <div class="field-group">
@@ -552,23 +552,23 @@ a{color:inherit;text-decoration:none}
   <div class="grid-4">
     <div class="stat-card accent">
       <div class="label">Total Leads</div>
-      <div class="value num" id="kpi-total">—</div>
+      <div class="value num" id="kpi-total">-</div>
       <div class="sub" id="kpi-days">Loading…</div>
     </div>
     <div class="stat-card">
       <div class="label">High Priority</div>
-      <div class="value num v2-brand" id="kpi-high">—</div>
+      <div class="value num v2-brand" id="kpi-high">-</div>
       <div class="sub">Score 75+</div>
     </div>
     <div class="stat-card">
       <div class="label">Qualified</div>
-      <div class="value num v2-amber" id="kpi-ready">—</div>
+      <div class="value num v2-amber" id="kpi-ready">-</div>
       <div class="sub">Email or phone, not yet contacted</div>
     </div>
     <div class="stat-card">
       <div class="label">Contacted</div>
-      <div class="value num" id="kpi-contacted">—</div>
-      <div class="sub" id="kpi-responded">— responded</div>
+      <div class="value num" id="kpi-contacted">-</div>
+      <div class="sub" id="kpi-responded">- responded</div>
     </div>
   </div>
 
@@ -576,22 +576,22 @@ a{color:inherit;text-decoration:none}
   <div class="grid-4" style="margin-top:-8px;margin-bottom:24px">
     <div class="stat-card">
       <div class="label">Meetings Booked</div>
-      <div class="value num v2-brand" id="kpi-meetings">—</div>
+      <div class="value num v2-brand" id="kpi-meetings">-</div>
       <div class="sub">From pipeline</div>
     </div>
     <div class="stat-card">
       <div class="label">Contracted</div>
-      <div class="value num v2-green" id="kpi-contracted">—</div>
+      <div class="value num v2-green" id="kpi-contracted">-</div>
       <div class="sub">Signed customers</div>
     </div>
     <div class="stat-card">
       <div class="label">Contact Info Needed</div>
-      <div class="value num v2-amber" id="kpi-research">—</div>
+      <div class="value num v2-amber" id="kpi-research">-</div>
       <div class="sub">High priority, no contact</div>
     </div>
     <div class="stat-card">
       <div class="label">Needs Profile Data</div>
-      <div class="value num v2-muted" id="kpi-insufficient">—</div>
+      <div class="value num v2-muted" id="kpi-insufficient">-</div>
       <div class="sub">High priority, incomplete</div>
     </div>
   </div>
@@ -610,17 +610,17 @@ a{color:inherit;text-decoration:none}
         <div id="pipeline-container"><div class="loading">Loading</div></div>
       </div>
       <div class="panel">
-        <h3>Priority split</h3>
+        <h3>Priority split (high priority)</h3>
         <div class="chart-wrap"><canvas id="priorityChart"></canvas></div>
       </div>
     </div>
     <div class="grid-charts">
       <div class="panel">
-        <h3>Leads by sector</h3>
+        <h3>Leads by sector (high priority)</h3>
         <div class="chart-wrap"><canvas id="sectorChart"></canvas></div>
       </div>
       <div class="panel">
-        <h3>Score distribution</h3>
+        <h3>Score distribution (high priority)</h3>
         <div class="chart-wrap"><canvas id="scoreChart"></canvas></div>
       </div>
     </div>
@@ -890,7 +890,7 @@ async function loadData() {
   } catch(e) {
     console.error(e);
     document.getElementById('last-updated').textContent = 'Error';
-    showBanner('error', `Supabase error: <strong>${e.message || e}</strong>. Check the URL and key, or click Config to update them.`);
+    showBanner('error', `Database error: <strong>${e.message || e}</strong>. Check the URL and key, or click Config to update them.`);
   }
 }
 function refreshData() {
@@ -986,7 +986,14 @@ function computeStats(leads) {
   leads.forEach(l => {
     if (sc[l.status] !== undefined) sc[l.status]++;
     if (l.priority === 'High' && scHigh[l.status] !== undefined) scHigh[l.status]++;
-    if (l.status !== 'Not Relevant' && pc[l.priority] !== undefined) pc[l.priority]++;
+    if (['Contacted','Email Sent','Responded','Meeting Booked'].includes(l.status)) contacted++;
+    if (['Responded','Meeting Booked'].includes(l.status)) responded++;
+    if (l.status === 'Meeting Booked') meetings++;
+    if (['contracted','customer','won','closed won'].includes((l.status||'').toLowerCase())) contracted++;
+  });
+  const high = leads.filter(l => l.priority === 'High' && l.status !== 'Not Relevant');
+  high.forEach(l => {
+    if (pc[l.priority] !== undefined) pc[l.priority]++;
     const s = l.sector || 'Other';
     sectors[s] = (sectors[s]||0) + 1;
     const scr = l.score || 0;
@@ -995,10 +1002,6 @@ function computeStats(leads) {
     else if (scr >= 60) scores['60-74']++;
     else if (scr >= 50) scores['50-59']++;
     else scores['<50']++;
-    if (['Contacted','Email Sent','Responded','Meeting Booked'].includes(l.status)) contacted++;
-    if (['Responded','Meeting Booked'].includes(l.status)) responded++;
-    if (l.status === 'Meeting Booked') meetings++;
-    if (['contracted','customer','won','closed won'].includes((l.status||'').toLowerCase())) contracted++;
   });
   const queueCounts = {
     Ready:        leads.filter(l =>                          l.enrichmentQueue === 'Ready'        && l.status !== 'Not Relevant').length,
@@ -1010,7 +1013,6 @@ function computeStats(leads) {
   const todayLeads = lastDate ? leads.filter(l => l.scout_date === lastDate) : [];
   const todayPriority = { High:0, Medium:0, Low:0 };
   todayLeads.forEach(l => { if (todayPriority[l.priority] !== undefined) todayPriority[l.priority]++; });
-  const high = leads.filter(l => l.priority === 'High' && l.status !== 'Not Relevant');
   return { sc, scHigh, pc, sectors, scores, contacted, responded, meetings, contracted,
     queueCounts, high, dates, lastDate, todayLeads, todayPriority };
 }
@@ -1227,10 +1229,10 @@ function openLeadDrawer(id) {
     <div class="drawer-section">
       <h3>Confidence</h3>
       <div class="conf-grid">
-        <div class="cell"><div class="cnum">${l.premises_confidence??'—'}</div><div class="clab">Premises</div></div>
-        <div class="cell"><div class="cnum">${l.operational_confidence??'—'}</div><div class="clab">Operational</div></div>
-        <div class="cell"><div class="cnum">${l.compliance_confidence??'—'}</div><div class="clab">Compliance</div></div>
-        <div class="cell"><div class="cnum">${l.contactability_confidence??'—'}</div><div class="clab">Reach</div></div>
+        <div class="cell"><div class="cnum">${l.premises_confidence??'-'}</div><div class="clab">Premises</div></div>
+        <div class="cell"><div class="cnum">${l.operational_confidence??'-'}</div><div class="clab">Operational</div></div>
+        <div class="cell"><div class="cnum">${l.compliance_confidence??'-'}</div><div class="clab">Compliance</div></div>
+        <div class="cell"><div class="cnum">${l.contactability_confidence??'-'}</div><div class="clab">Reach</div></div>
       </div>
     </div>
     <div class="drawer-section">
@@ -1439,7 +1441,7 @@ document.addEventListener('click', ev => {
 // === Outreach email system ================================================
 const EMAIL_TEMPLATES = {
   takeaway: {
-    subject: 'Fire safety for [Company] — quick question',
+    subject: 'Fire safety for [Company]: quick question',
     body:
 `Hi [Name],
 
@@ -1507,7 +1509,7 @@ Dougie
 MacFire Fire Protection`
   },
   general: {
-    subject: 'Fire safety — quick note for [Company]',
+    subject: 'Fire safety: quick note for [Company]',
     body:
 `Hi [Name],
 
@@ -1612,7 +1614,7 @@ function leadCard(l) {
       ${website     ? `<div><strong>Website:</strong> ${website}${l.websiteConfidence ? ` <span style="font-size:10px;color:var(--muted)">(${esc(l.websiteConfidence)})</span>` : ''}</div>` : ''}
       ${l.incorporated ? `<div><strong>Incorporated:</strong> ${esc(l.incorporated)}</div>` : ''}
       ${l.google_places ? `<div><strong>Google:</strong> ${esc(l.google_places)}</div>` : ''}
-      ${[l.premises_confidence,l.operational_confidence,l.compliance_confidence,l.contactability_confidence].some(v=>v!==null&&v!==undefined&&v!=='') ? `<div><strong>Confidence:</strong> P ${esc(l.premises_confidence??'—')} · O ${esc(l.operational_confidence??'—')} · C ${esc(l.compliance_confidence??'—')} · X ${esc(l.contactability_confidence??'—')}</div>` : ''}
+      ${[l.premises_confidence,l.operational_confidence,l.compliance_confidence,l.contactability_confidence].some(v=>v!==null&&v!==undefined&&v!=='') ? `<div><strong>Confidence:</strong> P ${esc(l.premises_confidence??'-')} · O ${esc(l.operational_confidence??'-')} · C ${esc(l.compliance_confidence??'-')} · X ${esc(l.contactability_confidence??'-')}</div>` : ''}
       ${l.profile_status ? `<div><strong>Profile:</strong> ${esc(l.profile_status.replace(/_/g,' '))}${l.missing_profile_fields ? ` · Missing ${esc(l.missing_profile_fields)}` : ''}</div>` : ''}
       ${l.reasoning ? `<div><strong>Reason:</strong> ${esc(l.reasoning)}</div>` : ''}
       ${l.relevance_notes ? `<div class="nr-notes-snippet">Notes: ${esc(l.relevance_notes)}</div>` : ''}
