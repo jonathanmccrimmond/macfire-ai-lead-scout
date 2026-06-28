@@ -61,9 +61,9 @@ that is why. Ask for the local workspace or work against Supabase directly.
   The current approved approach is: warm, plain, credible, email-first,
   no manual signature, no em dashes, no "Dougie" (use Douglas only if a
   name is needed), and no claim that the premises is brand new. The
-  company is newly set up, but the business/premises may be an existing
+  company is newly registered, but the business/premises may be an existing
   place under new ownership. Use wording like "I saw [Company] has
-  recently been set up" plus "Whether this is a new site or an existing
+  recently been registered" plus "Whether this is a new site or an existing
   place under new ownership..." where that nuance matters. If working
   from Jonathan's local `MacFire Production` workspace, also check any
   root-level `gh_pages_dashboard.html` snapshot, because older snapshots

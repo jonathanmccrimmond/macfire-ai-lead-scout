@@ -10,7 +10,7 @@ Rules:
 - Do not add a manual sign-off. Douglas has his own email signature.
 - Do not use em dashes in visible copy.
 - Do not use "Dougie" in outbound copy.
-- Treat the company as newly set up, but do not assume the premises or trading business is brand new.
+- Treat the company as newly registered, but do not assume the premises or trading business is brand new.
 - Keep the ask email-first, with a quick call as an optional fallback.
 
 ## Food / Takeaway / Restaurant
@@ -19,7 +19,7 @@ Subject: Fire safety for [Company]: quick question
 
 Hi [Name],
 
-I saw [Company] has recently been set up and thought it was worth getting in touch early.
+I saw [Company] has recently been registered and thought it was worth getting in touch early.
 
 I have looked after fire safety for food businesses across Scotland for over twenty years. Whether you are opening from scratch or taking over an existing place, it is usually easier to review the basics early than to catch up once staff, customers and insurers are already involved.
 
@@ -33,7 +33,7 @@ Subject: Fire protection for [Company]
 
 Hi [Name],
 
-I saw [Company] has recently been set up and thought it was worth getting in touch. We specialise in fire safety for hospitality and guest accommodation businesses across Scotland.
+I saw [Company] has recently been registered and thought it was worth getting in touch. We specialise in fire safety for hospitality and guest accommodation businesses across Scotland.
 
 The requirements for overnight accommodation can be more specific than people expect, especially around risk assessments, extinguishers, servicing and the annual checks insurers will want to see.
 
@@ -47,7 +47,7 @@ Subject: Fire safety checks for [Company]
 
 Hi [Name],
 
-I saw [Company] has recently been set up and wanted to make contact. We look after fire safety for community venues, church halls and meeting spaces across Scotland.
+I saw [Company] has recently been registered and wanted to make contact. We look after fire safety for community venues, church halls and meeting spaces across Scotland.
 
 These spaces often have changing users, volunteers, bookings and public access, so it is worth getting the basics clear early: a current fire risk assessment, the right extinguishers for the space, and a service plan to keep everything up to date.
 
@@ -61,7 +61,7 @@ Subject: Fire protection for [Company]
 
 Hi [Name],
 
-I saw [Company] has recently been set up and thought it was worth getting in touch early.
+I saw [Company] has recently been registered and thought it was worth getting in touch early.
 
 We work with leisure and entertainment businesses across Scotland. Whether the venue is brand new or an existing place under new ownership, it is worth checking the basics before things get busy.
 
@@ -75,7 +75,7 @@ Subject: Fire safety: quick note for [Company]
 
 Hi [Name],
 
-I saw [Company] has recently been set up and thought it was worth getting in touch early.
+I saw [Company] has recently been registered and thought it was worth getting in touch early.
 
 We work with businesses across Scotland on fire safety, from annual servicing through to full risk assessments, and we are used to helping owners understand what needs done without making it more complicated than it has to be.
 
