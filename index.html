@@ -503,7 +503,7 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
     <div class="charts-column">
 
       <div class="section-header">
-        <div class="section-title">📋 Pipeline Status (High Priority)</div>
+        <div class="section-title">📋 Pipeline Status</div>
       </div>
       <div class="panel" id="pipeline-container" style="margin-bottom:16px">
         <div class="loading">Loading…</div>
@@ -964,7 +964,7 @@ function renderAll_data() {
     }
   }
 
-  renderPipeline(stats.scHigh);
+  renderPipeline(stats.sc);
   renderCharts(stats);
   renderEmailQueue();
   renderPhoneQueue();
@@ -983,8 +983,10 @@ const STATUS_COLORS = {
 };
 
 function renderPipeline(sc, total) {
-  const rows = Object.entries(sc).filter(([k]) => k !== 'Email Sent' && k !== 'No Response');
+  const merged = { ...sc, Contacted: (sc['Contacted'] || 0) + (sc['Email Sent'] || 0) };
+  const rows = Object.entries(merged).filter(([k]) => k !== 'Email Sent' && k !== 'No Response');
   const max = Math.max(...rows.map(([, v]) => v), 1);
+
   document.getElementById('pipeline-container').innerHTML =
     rows.map(([k, v]) => `
       <div class="pipeline-row">
