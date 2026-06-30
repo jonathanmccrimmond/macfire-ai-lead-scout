@@ -1513,8 +1513,8 @@ If useful, reply with where you are up to and I can let you know what normally n
   }
 };
 
-function pickTemplateKey(sector) {
-  const s = (sector || '').toLowerCase();
+function pickTemplateKey(sector, company) {
+  const s = ((sector || '') + ' ' + (company || '')).toLowerCase();
   if (/takeaway|restaurant|food|cafe|café|catering|kitchen|bakery|chip/.test(s)) return 'takeaway';
   if (/hotel|b&b|bed and breakfast|guest|accommodation|inn|lodge/.test(s))           return 'hotel';
   if (/hall|community|church|venue|meeting|hospice|charity/.test(s))                  return 'hall';
@@ -1523,7 +1523,7 @@ function pickTemplateKey(sector) {
 }
 
 function buildEmail(l) {
-  const t = EMAIL_TEMPLATES[pickTemplateKey(l.sector)];
+  const t = EMAIL_TEMPLATES[pickTemplateKey(l.sector, l.company)];
   const company = (l.company || '').trim() || 'your business';
   const firstName = (l.director || '').trim().split(/\s+/)[0] || '';
   const name = firstName || 'there';
