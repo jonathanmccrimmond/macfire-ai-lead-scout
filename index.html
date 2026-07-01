@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <link rel="icon" href="favicon.ico" sizes="any"/>
 <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
-<title>MacFire AI Scout — Lead Dashboard</title>
+<title>MacFire AI Scout - Lead Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="config.js" onerror="window.__configMissing=true"></script>
@@ -32,6 +32,20 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
 #setup-screen{display:none;position:fixed;inset:0;background:var(--dark);z-index:999;
   display:flex;align-items:center;justify-content:center;flex-direction:column;gap:24px}
 #setup-screen.hidden{display:none!important}
+/* ── Auth gate ───────────────────────────────────────────────── */
+#auth-gate{position:fixed;inset:0;background:#0a0f1a;display:flex;align-items:center;justify-content:center;z-index:9999}
+#auth-gate.hidden{display:none}
+.auth-card{background:#131c2e;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:40px;width:min(380px,calc(100vw - 40px));text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.auth-title{color:#fff;font-size:21px;font-weight:700;margin:0 0 5px}
+.auth-sub{color:#64748b;font-size:13px;margin:0 0 26px}
+.auth-field{display:block;width:100%;box-sizing:border-box;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#e2e8f0;font-size:14px;padding:11px 14px;margin-bottom:12px;outline:none;transition:border-color .15s}
+.auth-field:focus{border-color:rgba(195,30,31,.55)}
+.auth-btn{width:100%;background:#C31E1F;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;padding:12px;cursor:pointer;margin-top:4px;transition:background .15s}
+.auth-btn:hover{background:#a51819}
+.auth-btn:disabled{opacity:.55;cursor:not-allowed}
+.auth-error{color:#f87171;font-size:13px;margin-top:10px;min-height:18px}
+.auth-logout-btn{font-size:11.5px;color:rgba(255,255,255,.35);background:none;border:1px solid rgba(255,255,255,.12);border-radius:5px;padding:4px 10px;cursor:pointer;margin-left:6px;transition:color .15s,border-color .15s}
+.auth-logout-btn:hover{color:rgba(255,255,255,.7);border-color:rgba(255,255,255,.22)}
 .setup-box{background:var(--card);border:1px solid var(--border);border-radius:14px;
   padding:40px 44px;max-width:480px;width:100%}
 .setup-logo{display:flex;align-items:stretch;border-radius:6px;overflow:hidden;margin-bottom:28px}
@@ -63,6 +77,10 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
 .logo-dark {background:var(--accent);color:#fff;font-size:14px;font-weight:900;padding:6px 11px}
 .hdr-sub{font-size:11px;color:var(--muted);margin-top:2px}
 .header-right{display:flex;align-items:center;gap:12px}
+.hdr-v2{font-size:11.5px;color:rgba(255,255,255,.35);text-decoration:none;
+  border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:3px 10px;
+  transition:color .15s,border-color .15s;white-space:nowrap}
+.hdr-v2:hover{color:rgba(255,255,255,.7);border-color:rgba(255,255,255,.22)}
 .refresh-btn{background:var(--card2);border:1px solid var(--border);color:var(--text);
   padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;transition:background .15s}
 .refresh-btn:hover{background:var(--border)}
@@ -80,7 +98,8 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
 .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px}
 .grid-2-1{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:22px}
-@media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr)}.grid-2-1{grid-template-columns:1fr}}
+.charts-column{padding-top:52px}
+@media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr)}.grid-2-1{grid-template-columns:1fr}.charts-column{padding-top:0}}
 @media(max-width:700px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr}}
 
 /* ── Stat cards ───────────────────────────────────────────────── */
@@ -131,15 +150,29 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
   text-decoration:none;padding:4px 11px;border-radius:5px;font-size:11px;transition:background .15s;cursor:pointer}
 .lead-link:hover{background:var(--border)}
 .lead-link.maps{border-color:rgba(41,128,185,.5);color:#5DADE2}
-.lead-action-btn{background:var(--card2);color:var(--text);border:1px solid var(--border);
-  border-radius:5px;font-size:11px;padding:4px 9px;cursor:pointer}
-.lead-action-btn:hover{background:var(--border)}
-.lead-action-btn:disabled{opacity:.6;cursor:not-allowed}
-.lead-action-btn.contacted-btn{border-color:rgba(245,158,11,.4);color:#FBBF24}
-.lead-action-btn.notrel-btn{border-color:rgba(148,163,184,.3);color:var(--muted)}
-.lead-action-btn.draft-btn{border-color:rgba(14,165,233,.45);color:#38BDF8}
-.lead-action-btn.marksent-btn{border-color:rgba(16,185,129,.5);color:#34D399;background:rgba(16,185,129,.12)}
-.lead-action-btn.returnq-btn{border-color:rgba(99,102,241,.45);color:#A5B4FC}
+.lead-action-btn{background:rgba(255,255,255,.04);color:rgba(255,255,255,.6);
+  border:1px solid rgba(255,255,255,.11);border-radius:6px;font-size:11.5px;
+  padding:5px 11px;cursor:pointer;letter-spacing:.01em;
+  transition:background .15s,border-color .15s,color .15s}
+.lead-action-btn:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.9)}
+.lead-action-btn:disabled{opacity:.45;cursor:not-allowed}
+/* Primary action — MacFire red */
+.lead-action-btn.draft-btn{background:rgba(195,30,31,.12);border-color:rgba(195,30,31,.45);color:#F87171}
+.lead-action-btn.draft-btn:hover{background:rgba(195,30,31,.22);border-color:rgba(195,30,31,.65)}
+/* Confirm positive outcome — green */
+.lead-action-btn.marksent-btn{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.35);color:#34D399}
+.lead-action-btn.marksent-btn:hover{background:rgba(16,185,129,.18)}
+.lead-action-btn.responded-btn{background:rgba(139,92,246,.08);border-color:rgba(139,92,246,.35);color:#C4B5FD}
+.lead-action-btn.responded-btn:hover{background:rgba(139,92,246,.16)}
+.lead-action-btn.meeting-btn{background:rgba(16,185,129,.07);border-color:rgba(16,185,129,.22);color:rgba(74,222,128,.75)}
+.lead-action-btn.meeting-btn:hover{background:rgba(16,185,129,.14)}
+.lead-action-btn.won-btn{background:rgba(16,185,129,.18);border-color:rgba(16,185,129,.55);color:#10B981;font-weight:600}
+.lead-action-btn.won-btn:hover{background:rgba(16,185,129,.28)}
+/* Manual contact (phone leads) — amber, subtle */
+.lead-action-btn.contacted-btn{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.3);color:#FBBF24}
+/* De-emphasised actions — ghost */
+.lead-action-btn.returnq-btn{border-color:rgba(255,255,255,.09);color:rgba(255,255,255,.4)}
+.lead-action-btn.notrel-btn{border-color:rgba(255,255,255,.07);color:rgba(255,255,255,.3)}
 
 /* ── Pipeline status bars ──────────────────────────────────────── */
 .pipeline-row{display:flex;align-items:center;margin-bottom:12px}
@@ -237,6 +270,7 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
 
 /* ── Tabs ─────────────────────────────────────────────────────── */
 .tabs{display:flex;gap:0;margin-bottom:18px;border-bottom:1px solid var(--border)}
+.tab-divider{width:2px;background:rgba(255,255,255,0.2);align-self:stretch;margin:8px 6px;flex-shrink:0}
 .tab-btn{background:none;border:none;border-bottom:2px solid transparent;
   color:var(--muted);font-size:13px;font-weight:600;padding:10px 18px;cursor:pointer;
   margin-bottom:-1px;transition:color .15s}
@@ -294,19 +328,38 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
 <body>
 
 <!-- ── Setup screen ──────────────────────────────────────────────────────── -->
+<div id="auth-gate" class="hidden">
+  <div class="auth-card">
+    <svg viewBox="0 0 270 100" width="160" aria-label="MacFire Ltd" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 20px">
+      <rect width="270" height="100" fill="#1A1F3C"/>
+      <rect x="2" y="69" width="266" height="29" fill="#ffffff"/>
+      <text x="7" y="57" font-family="Impact,'Arial Black',sans-serif" font-size="46" fill="#ffffff" textLength="107" lengthAdjust="spacingAndGlyphs">Mac</text>
+      <text x="119" y="57" font-family="Impact,'Arial Black',sans-serif" font-size="46" fill="#ffffff" textLength="92" lengthAdjust="spacingAndGlyphs">Fire</text>
+      <text x="213" y="57" font-family="Impact,'Arial Black',sans-serif" font-size="34" fill="#ffffff" textLength="53" lengthAdjust="spacingAndGlyphs">Ltd</text>
+      <text x="135" y="83" text-anchor="middle" dominant-baseline="central" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="17" fill="#C31E1F" letter-spacing="1.5">Fire Protection Company</text>
+    </svg>
+    <div class="auth-title">AI Lead Scout</div>
+    <div class="auth-sub">Sign in to continue</div>
+    <input id="auth-email" type="email" class="auth-field" placeholder="Email address" autocomplete="email">
+    <input id="auth-password" type="password" class="auth-field" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button id="auth-submit" class="auth-btn" onclick="doLogin()">Sign in</button>
+    <div id="auth-error" class="auth-error"></div>
+  </div>
+</div>
+
 <div id="setup-screen" class="hidden">
   <div class="setup-box">
     <div class="setup-logo">
       <span>MacFire</span><span>Fire Ltd</span>
     </div>
-    <h2>Connect to Supabase</h2>
-    <p>Enter your Supabase project URL and anon key. These will be saved in your browser and never committed to git.</p>
+    <h2>Connect to the production database</h2>
+    <p>Enter the project URL and anon key. These will be saved in your browser and never committed to git.</p>
     <div class="field-group">
-      <label>Supabase Project URL</label>
-      <input type="text" id="cfg-url" placeholder="https://xxxx.supabase.co" autocomplete="off"/>
+      <label>Project URL</label>
+      <input type="text" id="cfg-url" placeholder="https://project-url.example" autocomplete="off"/>
     </div>
     <div class="field-group">
-      <label>Supabase Anon Key</label>
+      <label>Anon key</label>
       <input type="text" id="cfg-key" placeholder="eyJhbGci..." autocomplete="off"/>
     </div>
     <div class="field-group">
@@ -325,15 +378,16 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
   <div class="header-left">
     <svg viewBox="0 0 270 100" height="44" aria-label="MacFire Ltd" xmlns="http://www.w3.org/2000/svg" style="border-radius:4px;flex-shrink:0">
       <rect width="270" height="100" fill="#1A1F3C"/>
-      <rect x="2" y="2" width="117" height="67" fill="#ffffff"/>
       <rect x="2" y="69" width="266" height="29" fill="#ffffff"/>
-      <text x="7" y="57" font-family="Impact,'Arial Black',sans-serif" font-size="46" fill="#1A1F3C" textLength="107" lengthAdjust="spacingAndGlyphs">Mac</text>
+      <text x="7" y="57" font-family="Impact,'Arial Black',sans-serif" font-size="46" fill="#ffffff" textLength="107" lengthAdjust="spacingAndGlyphs">Mac</text>
       <text x="119" y="57" font-family="Impact,'Arial Black',sans-serif" font-size="46" fill="#ffffff" textLength="92" lengthAdjust="spacingAndGlyphs">Fire</text>
       <text x="213" y="57" font-family="Impact,'Arial Black',sans-serif" font-size="34" fill="#ffffff" textLength="53" lengthAdjust="spacingAndGlyphs">Ltd</text>
       <text x="135" y="83" text-anchor="middle" dominant-baseline="central" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="17" fill="#C31E1F" letter-spacing="1.5">Fire Protection Company</text>
     </svg>
-    <div style="margin-left:14px">
+    <div style="margin-left:14px;display:flex;align-items:center;gap:10px">
       <div style="font-size:15px;font-weight:700">AI Lead Scout</div>
+      <a href="dashboard-v2.html" class="hdr-v2">Light mode</a>
+      <button class="auth-logout-btn" onclick="doLogout()">Sign out</button>
     </div>
   </div>
   <div class="header-right">
@@ -341,7 +395,7 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
       <span style="font-size:16px">🔥</span>
       <div style="line-height:1.3">
         <div style="font-weight:700;color:var(--accent2)" id="hdr-run-label">Latest Run</div>
-        <div style="color:var(--muted)" id="hdr-run-detail">—</div>
+        <div style="color:var(--muted)" id="hdr-run-detail">-</div>
       </div>
     </div>
     <div class="last-updated"><span class="live-dot"></span><span id="last-updated">Loading…</span></div>
@@ -355,44 +409,44 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
   <div class="grid-4" id="kpi-row">
     <div class="stat-card accent">
       <div class="label">Total Leads</div>
-      <div class="value" id="kpi-total">—</div>
+      <div class="value" id="kpi-total">-</div>
       <div class="sub" id="kpi-days">Loading…</div>
     </div>
     <div class="stat-card">
       <div class="label">High Priority</div>
-      <div class="value score-high" id="kpi-high">—</div>
+      <div class="value score-high" id="kpi-high">-</div>
       <div class="sub">Score 75+</div>
     </div>
     <div class="stat-card">
-      <div class="label">Email Queue</div>
-      <div class="value" style="color:var(--green)" id="kpi-ready">—</div>
-      <div class="sub">Has email, not yet sent</div>
+      <div class="label">Qualified</div>
+      <div class="value" style="color:var(--green)" id="kpi-ready">-</div>
+      <div class="sub">Email or phone, not yet contacted</div>
     </div>
     <div class="stat-card">
       <div class="label">Contacted</div>
-      <div class="value" id="kpi-contacted">—</div>
-      <div class="sub" id="kpi-responded">— responded</div>
+      <div class="value" id="kpi-contacted">-</div>
+      <div class="sub" id="kpi-responded">- responded</div>
     </div>
   </div>
   <div class="grid-4" style="margin-top:-8px">
     <div class="stat-card">
       <div class="label">Meetings Booked</div>
-      <div class="value score-high" id="kpi-meetings">—</div>
+      <div class="value score-high" id="kpi-meetings">-</div>
       <div class="sub">From pipeline</div>
     </div>
     <div class="stat-card">
       <div class="label">Contracted</div>
-      <div class="value" style="color:var(--green)" id="kpi-contracted">—</div>
+      <div class="value" style="color:var(--green)" id="kpi-contracted">-</div>
       <div class="sub">Signed customers</div>
     </div>
     <div class="stat-card">
       <div class="label">Contact Info Needed</div>
-      <div class="value" style="color:var(--amber)" id="kpi-research">—</div>
+      <div class="value" style="color:var(--amber)" id="kpi-research">-</div>
       <div class="sub">High priority, no contact</div>
     </div>
     <div class="stat-card">
       <div class="label">Needs Profile Data</div>
-      <div class="value" style="color:var(--muted)" id="kpi-insufficient">—</div>
+      <div class="value" style="color:var(--muted)" id="kpi-insufficient">-</div>
       <div class="sub">High priority, incomplete</div>
     </div>
   </div>
@@ -405,8 +459,11 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
       <div class="tabs">
         <button class="tab-btn active" data-tab="email-queue">Email Queue <span id="tab-count-email-queue" style="color:var(--muted);font-size:11px;margin-left:4px"></span></button>
         <button class="tab-btn" data-tab="phone-queue">Phone Queue <span id="tab-count-phone-queue" style="color:var(--muted);font-size:11px;margin-left:4px"></span></button>
-        <button class="tab-btn" data-tab="outreach">Outreach <span id="tab-count-outreach" style="color:var(--muted);font-size:11px;margin-left:4px"></span></button>
+        <button class="tab-btn" data-tab="outreach">Contacted <span id="tab-count-outreach" style="color:var(--muted);font-size:11px;margin-left:4px"></span></button>
         <button class="tab-btn" data-tab="responded">Responded <span id="tab-count-responded" style="color:var(--muted);font-size:11px;margin-left:4px"></span></button>
+        <button class="tab-btn" data-tab="meeting-booked">Meeting Booked <span id="tab-count-meeting-booked" style="color:var(--muted);font-size:11px;margin-left:4px"></span></button>
+        <button class="tab-btn" data-tab="contracted">Contracted <span id="tab-count-contracted" style="color:var(--muted);font-size:11px;margin-left:4px"></span></button>
+        <div class="tab-divider" aria-hidden="true"></div>
         <button class="tab-btn" data-tab="research">Research <span id="tab-count-research" style="color:var(--muted);font-size:11px;margin-left:4px"></span></button>
         <button class="tab-btn" data-tab="not-relevant">Not Relevant <span id="tab-count-not-relevant" style="color:var(--muted);font-size:11px;margin-left:4px"></span></button>
       </div>
@@ -429,7 +486,7 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
 
       <div class="tab-pane" id="tab-outreach">
         <div class="section-header">
-          <div class="section-title">Outreach in progress</div>
+          <div class="section-title">Contacted</div>
           <div class="section-badge" id="outreach-count-badge">0</div>
         </div>
         <div id="outreach-container"><div class="loading">Loading…</div></div>
@@ -437,15 +494,31 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
 
       <div class="tab-pane" id="tab-responded">
         <div class="section-header">
-          <div class="section-title">Responded or meeting booked</div>
+          <div class="section-title">Responded</div>
           <div class="section-badge" id="responded-count-badge">0</div>
         </div>
         <div id="responded-container"><div class="loading">Loading…</div></div>
       </div>
 
+      <div class="tab-pane" id="tab-meeting-booked">
+        <div class="section-header">
+          <div class="section-title">Meeting Booked</div>
+          <div class="section-badge" id="meeting-booked-count-badge">0</div>
+        </div>
+        <div id="meeting-booked-container"><div class="loading">Loading…</div></div>
+      </div>
+
+      <div class="tab-pane" id="tab-contracted">
+        <div class="section-header">
+          <div class="section-title">Contracted</div>
+          <div class="section-badge" id="contracted-count-badge">0</div>
+        </div>
+        <div id="contracted-container"><div class="loading">Loading…</div></div>
+      </div>
+
       <div class="tab-pane" id="tab-research">
         <div class="section-header">
-          <div class="section-title">Needs contact info</div>
+          <div class="section-title">Needs contact info (high priority)</div>
           <div class="section-badge" id="research-count-badge">0</div>
         </div>
         <div id="research-container"><div class="loading">Loading…</div></div>
@@ -461,7 +534,7 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
     </div>
 
     <!-- RIGHT: charts & pipeline -->
-    <div>
+    <div class="charts-column">
 
       <div class="section-header">
         <div class="section-title">📋 Pipeline Status</div>
@@ -471,14 +544,14 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
       </div>
 
       <div class="section-header">
-        <div class="section-title">Priority Split</div>
+        <div class="section-title">Priority Split (All Leads)</div>
       </div>
       <div class="panel" style="margin-bottom:16px">
         <div class="chart-wrap"><canvas id="priorityChart"></canvas></div>
       </div>
 
       <div class="section-header">
-        <div class="section-title">🏢 Leads by Sector</div>
+        <div class="section-title">🏢 Leads by Sector (High Priority)</div>
       </div>
       <div class="panel" style="margin-bottom:16px">
         <div class="chart-wrap" style="height:220px"><canvas id="sectorChart"></canvas></div>
@@ -680,7 +753,7 @@ function hideSetup() {
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
-function init() {
+async function init() {
   const cfg = getConfig();
   if (!cfg || !cfg.supabaseUrl || !cfg.supabaseKey) {
     showSetup();
@@ -689,9 +762,49 @@ function init() {
   hideSetup();
   applyFiltersFromUrl();
   _sb = supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey);
+
+  _sb.auth.onAuthStateChange((event, session) => {
+    if (session) {
+      document.getElementById('auth-gate').classList.add('hidden');
+      if (event === 'SIGNED_IN') {
+        _analyticsReady = true;
+        trackEvent('dashboard_opened', { source: 'supabase' });
+        loadData();
+      }
+    } else {
+      document.getElementById('auth-gate').classList.remove('hidden');
+    }
+  });
+
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) {
+    document.getElementById('auth-gate').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('auth-gate').classList.add('hidden');
   _analyticsReady = true;
   trackEvent('dashboard_opened', { source: 'supabase' });
   loadData();
+}
+
+async function doLogin() {
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl    = document.getElementById('auth-error');
+  const btn      = document.getElementById('auth-submit');
+  errEl.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+  const { error } = await _sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    errEl.textContent = 'Incorrect email or password.';
+    btn.disabled = false;
+    btn.textContent = 'Sign in';
+  }
+}
+
+async function doLogout() {
+  await _sb.auth.signOut();
 }
 
 // ── Data loading ───────────────────────────────────────────────────────────
@@ -708,9 +821,8 @@ async function loadData() {
     _leads = (data || []).map(normalizeLead).map(enrichLead);
     if (_leads.length === 0) {
       showBanner('warning',
-        `Connected to Supabase but no rows returned from the <strong>${table}</strong> table. ` +
-        `Check that data was imported and that Row Level Security allows the anon role to SELECT. ` +
-        `In Supabase → Table Editor → ${table} → RLS → add a policy: <em>SELECT for anon, true</em>.`);
+        `Connected to the production database but no rows returned from the <strong>${table}</strong> table. ` +
+        `Check the read policy for the <strong>${table}</strong> table.`);
     } else {
       hideBanner();
     }
@@ -724,7 +836,7 @@ async function loadData() {
   } catch(e) {
     console.error(e);
     document.getElementById('last-updated').textContent = 'Error';
-    showBanner('error', `Supabase error: <strong>${e.message || e}</strong>. Check the URL and key in config.js, or click ⚙ Config to update them.`);
+    showBanner('error', `Database error: <strong>${e.message || e}</strong>. Check the URL and key in config.js, or click ⚙ Config to update them.`);
   }
 }
 
@@ -844,17 +956,19 @@ function enrichLead(l) {
 
 // ── Stats computation ──────────────────────────────────────────────────────
 function computeStats(leads) {
-  const sc = { 'New Lead':0,'Contacted':0,'Email Sent':0,'Responded':0,'Meeting Booked':0,'No Response':0,'Not Relevant':0 };
+  const sc     = { 'New Lead':0,'Qualified':0,'Contacted':0,'Email Sent':0,'Responded':0,'Meeting Booked':0,'Contracted':0,'No Response':0,'Not Relevant':0 };
+  const scHigh = { 'New Lead':0,'Qualified':0,'Contacted':0,'Email Sent':0,'Responded':0,'Meeting Booked':0,'Contracted':0,'No Response':0,'Not Relevant':0 };
   const pc = { High:0, Medium:0, Low:0 };
+  const priorityAll = { High:0, Medium:0, Low:0 };
   const sectors = {};
   const scores  = { '90-100':0,'75-89':0,'60-74':0,'50-59':0,'<50':0 };
   let contacted=0, responded=0, meetings=0, contracted=0;
 
   leads.forEach(l => {
     if (sc[l.status] !== undefined) sc[l.status]++;
-    if (l.status !== 'Not Relevant' && pc[l.priority] !== undefined) pc[l.priority]++;
-    const s = l.sector || 'Other';
-    sectors[s] = (sectors[s] || 0) + 1;
+    if (l.priority === 'High' && scHigh[l.status] !== undefined) scHigh[l.status]++;
+    if (l.priority === 'High' && l.status !== 'Not Relevant') sc['Qualified']++;
+    if (priorityAll[l.priority] !== undefined) priorityAll[l.priority]++;
     const scr = l.score || 0;
     if (scr >= 90) scores['90-100']++;
     else if (scr >= 75) scores['75-89']++;
@@ -868,6 +982,11 @@ function computeStats(leads) {
   });
 
   const high = leads.filter(l => l.priority === 'High' && l.status !== 'Not Relevant');
+  high.forEach(l => {
+    if (pc[l.priority] !== undefined) pc[l.priority]++;
+    const s = l.sector || 'Other';
+    sectors[s] = (sectors[s] || 0) + 1;
+  });
   const queueCounts = {
     Ready:       leads.filter(l => l.priority === 'High' && l.enrichmentQueue === 'Ready'       && l.status !== 'Not Relevant').length,
     Research:    leads.filter(l => l.priority === 'High' && l.enrichmentQueue === 'Research'    && l.status !== 'Not Relevant').length,
@@ -881,7 +1000,7 @@ function computeStats(leads) {
   const todayPriority = { High:0, Medium:0, Low:0 };
   todayLeads.forEach(l => { if (todayPriority[l.priority] !== undefined) todayPriority[l.priority]++; });
 
-  return { sc, pc, sectors, scores, contacted, responded, meetings, contracted,
+  return { sc, scHigh, pc, priorityAll, sectors, scores, contacted, responded, meetings, contracted,
            queueCounts, high, dates, lastDate, todayLeads, todayPriority };
 }
 
@@ -893,8 +1012,9 @@ function renderAll_data() {
   document.getElementById('kpi-total').textContent      = _leads.length;
   document.getElementById('kpi-days').textContent       = `${stats.dates.length} scout run${stats.dates.length !== 1 ? 's' : ''}`;
   document.getElementById('kpi-high').textContent       = stats.pc.High;
-  const _emailQ = _leads.filter(l => l.email && !['Email Sent','Contacted','Responded','Meeting Booked','Not Relevant'].includes(l.status));
-  document.getElementById('kpi-ready').textContent      = _emailQ.length;
+  const _eQ = _leads.filter(l => l.email && isValidEmail(l.email) && !['Email Sent','Contacted','Responded','Meeting Booked','Contracted','Not Relevant'].includes(l.status));
+  const _pQ = _leads.filter(l => (!l.email || !isValidEmail(l.email)) && l.phone && !['Email Sent','Contacted','Responded','Meeting Booked','Contracted','Not Relevant'].includes(l.status));
+  document.getElementById('kpi-ready').textContent      = _eQ.length + _pQ.length;
   document.getElementById('kpi-contacted').textContent  = stats.contacted;
   document.getElementById('kpi-responded').textContent  = `${stats.responded} responded`;
   document.getElementById('kpi-meetings').textContent   = stats.meetings;
@@ -919,26 +1039,31 @@ function renderAll_data() {
     }
   }
 
-  renderPipeline(stats.sc, _leads.length);
+  renderPipeline(stats.sc);
   renderCharts(stats);
   renderEmailQueue();
   renderPhoneQueue();
   renderOutreach();
   renderResponded();
+  renderMeetingBooked();
+  renderContracted();
   renderResearch();
   renderNotRelevant();
 }
 
 // ── Pipeline status ────────────────────────────────────────────────────────
 const STATUS_COLORS = {
-  'New Lead':'#6366F1','Contacted':'#F0B429','Email Sent':'#0EA5E9','Responded':'#10B981',
+  'New Lead':'#6366F1','Qualified':'#059669','Contacted':'#F0B429','Email Sent':'#0EA5E9','Responded':'#10B981',
   'Meeting Booked':'#A569BD','No Response':'#EF4444','Not Relevant':'#546E7A'
 };
 
 function renderPipeline(sc, total) {
-  const max = Math.max(...Object.values(sc), 1);
+  const merged = { ...sc, Contacted: (sc['Contacted'] || 0) + (sc['Email Sent'] || 0) };
+  const rows = Object.entries(merged).filter(([k]) => k !== 'Email Sent' && k !== 'No Response');
+  const max = Math.max(...rows.map(([, v]) => v), 1);
+
   document.getElementById('pipeline-container').innerHTML =
-    Object.entries(sc).map(([k, v]) => `
+    rows.map(([k, v]) => `
       <div class="pipeline-row">
         <div class="pipeline-label">${k}</div>
         <div class="pipeline-bar-wrap">
@@ -960,8 +1085,8 @@ function renderCharts(stats) {
   _charts.priority = new Chart(document.getElementById('priorityChart'), {
     type: 'doughnut',
     data: {
-      labels: Object.keys(stats.pc),
-      datasets: [{ data: Object.values(stats.pc),
+      labels: Object.keys(stats.priorityAll),
+      datasets: [{ data: Object.values(stats.priorityAll),
         backgroundColor: ['#E74C3C','#F0B429','#546E7A'],
         borderWidth: 0 }]
     },
@@ -1014,18 +1139,18 @@ function scoreClass(s) { return s >= 75 ? 'score-high' : s >= 50 ? 'score-med' :
 
 function priorityBadge(p) {
   const cls = { High:'badge-high', Medium:'badge-medium', Low:'badge-low' }[p] || 'badge-low';
-  return `<span class="badge ${cls}">${p||'—'}</span>`;
+  return `<span class="badge ${cls}">${p||'-'}</span>`;
 }
 function statusBadge(s) {
   const cls = {
     'New Lead':'badge-new','Contacted':'badge-contacted','Email Sent':'badge-emailed','Responded':'badge-responded',
     'Meeting Booked':'badge-meeting','No Response':'badge-noresp','Not Relevant':'badge-notrel'
   }[s] || 'badge-low';
-  return `<span class="badge ${cls}">${s||'—'}</span>`;
+  return `<span class="badge ${cls}">${s||'-'}</span>`;
 }
 function queueBadge(q) {
   const cls = { Ready:'badge-ready', Research:'badge-research', Insufficient:'badge-insufficient' }[q] || 'badge-insufficient';
-  const label = q === 'Insufficient' ? 'Needs Data' : (q || '—');
+  const label = q === 'Insufficient' ? 'Needs Data' : (q || '-');
   return `<span class="badge ${cls}">${label}</span>`;
 }
 function channelBadge(cq) {
@@ -1063,7 +1188,7 @@ function openLeadDrawer(id) {
     : '';
 
   document.getElementById('drawer-body').innerHTML = `
-    <h2>${esc(l.company || '—')}</h2>
+    <h2>${esc(l.company || '-')}</h2>
     <div class="drawer-meta">
       ${priorityBadge(l.priority)}
       ${l.score ? `<span class="lead-score ${scoreClass(l.score)}">${l.score}</span>` : ''}
@@ -1085,10 +1210,10 @@ function openLeadDrawer(id) {
     <div class="drawer-section">
       <h3>Confidence</h3>
       <div class="conf-grid">
-        <div class="cell"><div class="num">${l.premises_confidence ?? '—'}</div><div class="lab">Premises</div></div>
-        <div class="cell"><div class="num">${l.operational_confidence ?? '—'}</div><div class="lab">Operational</div></div>
-        <div class="cell"><div class="num">${l.compliance_confidence ?? '—'}</div><div class="lab">Compliance</div></div>
-        <div class="cell"><div class="num">${l.contactability_confidence ?? '—'}</div><div class="lab">Reach</div></div>
+        <div class="cell"><div class="num">${l.premises_confidence ?? '-'}</div><div class="lab">Premises</div></div>
+        <div class="cell"><div class="num">${l.operational_confidence ?? '-'}</div><div class="lab">Operational</div></div>
+        <div class="cell"><div class="num">${l.compliance_confidence ?? '-'}</div><div class="lab">Compliance</div></div>
+        <div class="cell"><div class="num">${l.contactability_confidence ?? '-'}</div><div class="lab">Reach</div></div>
       </div>
     </div>
 
@@ -1339,7 +1464,7 @@ function leadCard(l) {
   const website = l.website ? `<a href="${esc(l.website)}" target="_blank" rel="noopener" style="color:#5DADE2" data-analytics-event="lead_website_opened" data-lead-id="${esc(l.id)}">${esc(l.website.replace(/^https?:\/\//,''))}</a>` : '';
   const conf = [l.premises_confidence, l.operational_confidence, l.compliance_confidence, l.contactability_confidence]
     .some(v => v !== null && v !== undefined && v !== '')
-    ? `<div><strong>Confidence:</strong> P ${esc(l.premises_confidence ?? '—')} · O ${esc(l.operational_confidence ?? '—')} · C ${esc(l.compliance_confidence ?? '—')} · X ${esc(l.contactability_confidence ?? '—')}</div>`
+    ? `<div><strong>Confidence:</strong> P ${esc(l.premises_confidence ?? '-')} · O ${esc(l.operational_confidence ?? '-')} · C ${esc(l.compliance_confidence ?? '-')} · X ${esc(l.contactability_confidence ?? '-')}</div>`
     : '';
   const profile = l.profile_status
     ? `<div><strong>Profile:</strong> ${esc(l.profile_status.replace(/_/g, ' '))}${l.missing_profile_fields ? ` · Missing ${esc(l.missing_profile_fields)}` : ''}</div>`
@@ -1348,7 +1473,7 @@ function leadCard(l) {
   return `
   <div class="lead-card" id="lc-${l.id}" onclick="openLeadDrawer('${l.id}')">
     <div class="lead-top-row">
-      <div class="lead-name">${esc(l.company || '—')}</div>
+      <div class="lead-name">${esc(l.company || '-')}</div>
       <div class="lead-right-actions" onclick="event.stopPropagation()">${maps}${sv}</div>
     </div>
     <div class="lead-meta">
@@ -1364,7 +1489,7 @@ function leadCard(l) {
       ${l.director ? `<div><strong>Director:</strong> ${esc(l.director)}</div>` : ''}
       ${l.address  ? `<div><strong>Address:</strong> ${esc(l.address)}</div>`  : ''}
       ${phone      ? `<div><strong>Phone:</strong> ${phone}</div>`             : ''}
-      ${email      ? `<div><strong>Email:</strong> ${email}</div>`             : ''}
+      ${email      ? `<div><strong>Email:</strong> ${email}${emailWarningBadge(l.email)}</div>` : ''}
       ${website    ? `<div><strong>Website:</strong> ${website} <span style="font-size:10px;color:var(--muted)">(${l.websiteConfidence})</span></div>` : ''}
       ${l.incorporated ? `<div><strong>Incorporated:</strong> ${esc(l.incorporated)}</div>` : ''}
       ${l.scout_date   ? `<div><strong>Scout date:</strong> ${esc(l.scout_date)}</div>`      : ''}
@@ -1380,110 +1505,132 @@ function leadCard(l) {
         ? `<button class="lead-action-btn marksent-btn" onclick="markEmailSent('${l.id}')">✓ Mark as sent</button>
            <button class="lead-action-btn notrel-btn" onclick="cancelDraft('${l.id}')">Not sent</button>`
         : `
-          ${['Contacted','Email Sent','Responded','Meeting Booked','Not Relevant'].includes(l.status) ? '' : l.email
+          ${['Contacted','Email Sent','Responded','Meeting Booked','Contracted','Not Relevant'].includes(l.status) ? '' : l.email
             ? `<button class="lead-action-btn draft-btn" onclick="draftEmail('${l.id}')">Draft email</button>
                <button class="lead-action-btn" onclick="copyEmail('${l.id}')">Copy email</button>`
             : `<button class="lead-action-btn contacted-btn" onclick="updateStatus('${l.id}','Contacted')">Mark Contacted</button>`}
-          ${['Meeting Booked','Not Relevant'].includes(l.status) ? '' : `<button class="lead-action-btn" style="border-color:rgba(125,60,152,.4);color:#A569BD" onclick="updateStatus('${l.id}','Meeting Booked')">Meeting Booked</button>`}
+          ${['Contacted','Email Sent'].includes(l.status) ? `<button class="lead-action-btn responded-btn" onclick="updateStatus('${l.id}','Responded')">Mark as Responded</button>` : ''}
+          ${l.status === 'Email Sent' ? `<button class="lead-action-btn notrel-btn" onclick="markEmailBounced('${l.id}')">Email Bounced</button>` : ''}
+          ${['Contacted','Email Sent','Responded'].includes(l.status) ? `<button class="lead-action-btn meeting-btn" onclick="updateStatus('${l.id}','Meeting Booked')">Meeting Booked</button>` : ''}
+          ${l.status === 'Meeting Booked' ? `<button class="lead-action-btn won-btn" onclick="updateStatus('${l.id}','Contracted')">Contracted</button>` : ''}
           ${l.status !== 'New Lead' ? `<button class="lead-action-btn returnq-btn" onclick="updateStatus('${l.id}','New Lead')">Return to queue</button>` : ''}
-          ${l.status === 'Not Relevant' ? '' : `<button class="lead-action-btn notrel-btn" onclick="markNotRelevant('${l.id}')">Not Relevant</button>`}
+          ${['Not Relevant','Contracted'].includes(l.status) ? '' : `<button class="lead-action-btn notrel-btn" onclick="markNotRelevant('${l.id}')">Not Relevant</button>`}
         `}
     </div>
   </div>`;
 }
 
+// ── Email quality detection ────────────────────────────────────────────────
+const AGENT_DOMAINS   = ['clydeoffices.com','companiesmadesimple.com','1stformations.com','formationshouse.com','simplesimple.co.uk','companywizard.co.uk'];
+const GENERIC_LOCALS  = ['info','contact','admin','hello','enquiries','enquiry','office','mail','post','accounts','reception','general','support','team'];
+
+function isGenericEmail(email) {
+  if (!email) return false;
+  const [local, domain] = email.toLowerCase().split('@');
+  if (!domain) return false;
+  if (AGENT_DOMAINS.some(d => domain === d)) return 'agent';
+  if (GENERIC_LOCALS.includes(local)) return 'generic';
+  return false;
+}
+
+function emailWarningBadge(email) {
+  const kind = isGenericEmail(email);
+  if (kind === 'agent')   return ' <span style="font-size:10px;background:#FEF3C7;color:#92400E;border-radius:3px;padding:1px 5px;font-weight:600">Formation agent</span>';
+  if (kind === 'generic') return ' <span style="font-size:10px;background:#FEF3C7;color:#92400E;border-radius:3px;padding:1px 5px;font-weight:600">Generic address</span>';
+  return '';
+}
+
+async function markEmailBounced(id) {
+  if (!confirm('Mark as bounced? This clears the email address and returns the lead to the phone queue.')) return;
+  const cfg   = getConfig();
+  const table = cfg?.table || 'leads';
+  const btns  = document.querySelectorAll(`#lc-${id} button`);
+  btns.forEach(b => b.disabled = true);
+  try {
+    const { error } = await _sb.from(table).update({ status: 'New Lead', email: null }).eq('id', id);
+    if (error) throw error;
+    _leads = _leads.map(l => l.id === id ? enrichLead({ ...l, status: 'New Lead', email: null }) : l);
+    renderAll_data();
+  } catch(e) {
+    console.error('Bounce update failed:', e);
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
 // ── Outreach email pre-fill (Outlook, no inbox access) ─────────────────────
 // Templates mirror the approved Google Doc copy. Tokens filled client-side.
-// Nothing is sent on Dougie's behalf: this only opens a pre-filled compose.
+// Nothing is sent on Douglas's behalf: this only opens a pre-filled compose.
 const EMAIL_TEMPLATES = {
   takeaway: {
-    subject: 'Fire safety for [Company] — quick question',
+    subject: 'Fire safety for [Company]: quick question',
     body:
 `Hi [Name],
 
-Congratulations on the new venture. I spotted that [Company] recently registered in your area, and as someone who has looked after fire safety for food businesses across Scotland for over twenty years, I always like to reach out early.
+I saw [Company] has recently been registered and thought it was worth getting in touch early.
 
-Getting the right kit in place from the start is a lot simpler than catching up later, and it means one less thing on your list as you get the doors open.
+I have looked after fire safety for food businesses across Scotland for over forty years. Whether you are opening from scratch or taking over an existing place, it is usually easier to review the basics early than to catch up once staff, customers and insurers are already involved.
 
-If you have not sorted your fire extinguishers, emergency lighting, or annual service yet, I would be happy to give you a quick quote. No obligation, just want to make sure you are covered properly.
+If you have not reviewed your fire extinguishers, emergency lighting, fire alarm or annual services yet, I would be happy to give you a quick steer or quote. No obligation, just practical advice so you know what normally needs checked.
 
-Worth a five-minute call?
-
-Best,
-Dougie
-MacFire Fire Protection`
+If useful, reply with where you are up to and I can point you in the right direction. Happy to do that by email, or we can have a quick call if easier.`
   },
   hotel: {
     subject: 'Fire protection for [Company]',
     body:
 `Hi [Name],
 
-I came across [Company] and wanted to get in touch. We specialise in fire safety for hospitality businesses across Scotland, and with a new registration on record I thought it was worth a quick hello.
+I saw [Company] has recently been registered and thought it was worth getting in touch. We specialise in fire safety for hospitality and guest accommodation businesses across Scotland.
 
-Compliance requirements for overnight accommodation are specific, and getting the right advice early saves a lot of time and expense down the line.
+The requirements for overnight accommodation can be more specific than people expect, especially around risk assessments, extinguishers, fire alarms, emergency lights, and the annual checks insurers will want to see.
 
-We handle everything: risk assessments, extinguishers, servicing and the annual checks your insurer will want to see. One point of contact, no jargon.
+Whether this is a new site or an existing place under new ownership, getting the right advice early normally saves time and cost later. We keep it straightforward: one point of contact, no jargon, and a clear view of what needs done.
 
-If you are still putting things in place, I would be glad to help. Are you free for a quick chat this week?
-
-Best,
-Dougie
-MacFire Fire Protection`
+If you are still putting things in place, I would be glad to help. Reply with where you are up to and I can let you know what normally needs checked. Happy to do that by email, or we can have a quick call if easier.`
   },
   hall: {
     subject: 'Fire safety checks for [Company]',
     body:
 `Hi [Name],
 
-I noticed [Company] has recently registered and wanted to make contact. We look after fire safety for community venues, church halls and meeting spaces across Scotland, and it is an area where compliance requirements can catch people out if they are not on top of them.
+I saw [Company] has recently been registered and wanted to make contact. We look after fire safety for community venues, church halls and meeting spaces across Scotland.
 
-If you are opening a new venue or taking on an existing one, the key things to have in place are a current fire risk assessment, the right extinguishers for the space, and a service plan to keep everything up to date.
+These spaces often have changing users, volunteers, bookings and public access, so it is worth getting the basics clear early: a current fire risk assessment, the right extinguishers, emergency lighting & fire alarms for the space, and a service plan to keep everything up to date.
 
-Happy to run through what you need at no charge, so you know exactly where you stand before you open the doors.
+Happy to run through what you normally need at no charge, so you know exactly where you stand before opening, reopening or taking on new bookings.
 
-Would that be useful?
-
-Best,
-Dougie
-MacFire Fire Protection`
+If useful, reply with where you are up to and I can point you in the right direction. Happy to do that by email, or we can have a quick call if easier.`
   },
   leisure: {
     subject: 'Fire protection for [Company]',
     body:
 `Hi [Name],
 
-Congratulations on the new registration. We work with leisure and entertainment businesses across Scotland on fire safety, and I always like to reach out when I see a new venue coming through.
+I saw [Company] has recently been registered and thought it was worth getting in touch early.
 
-With a space that will have members of the public through the door regularly, it is worth making sure your fire protection is right from the start. We cover everything from extinguishers and emergency lighting through to annual inspections and staff training.
+We work with leisure and entertainment businesses across Scotland. Whether the venue is brand new or an existing place under new ownership, it is worth checking the basics before things get busy.
 
-If you have not sorted this yet, I can get you a quote quickly. No pressure, just want to make sure you are in good shape.
+We can help with extinguishers, emergency lighting, fire alarms, annual inspections and staff training, and give you a clear steer on what is actually needed.
 
-Worth a call?
-
-Best,
-Dougie
-MacFire Fire Protection`
+If you have not reviewed this yet, I can get you a quote quickly. No pressure. If useful, reply with where you are up to and I can point you in the right direction, or we can have a quick call if easier.`
   },
   general: {
-    subject: 'Fire safety — quick note for [Company]',
+    subject: 'Fire safety: quick note for [Company]',
     body:
 `Hi [Name],
 
-I noticed [Company] has recently come up on my radar and wanted to make contact. We work with businesses across Scotland on fire safety, from annual servicing through to full risk assessments, and we are used to stepping in when things have not been kept up to date.
+I saw [Company] has recently been registered and thought it was worth getting in touch early.
 
-If you would like a quick overview of where things stand, I am happy to run through it with you. It would not take long and there is no commitment.
+We work with businesses across Scotland on fire safety, from annual servicing through to full risk assessments, and we are used to helping owners understand what needs done without making it more complicated than it has to be.
 
-Worth a five-minute call?
+Whether this is a new site or an existing place under new ownership, it is usually easier to check the basics now than to deal with gaps later when staff, customers or insurers are already involved.
 
-Best,
-Dougie
-MacFire Fire Protection`
+If useful, reply with where you are up to and I can let you know what normally needs checked. Happy to do that by email, or we can have a quick call if easier.`
   }
 };
 
-function pickTemplateKey(sector) {
-  const s = (sector || '').toLowerCase();
-  if (/takeaway|restaurant|food|cafe|café|catering|kitchen|bakery|chip/.test(s)) return 'takeaway';
+function pickTemplateKey(sector, company, reasoning) {
+  const s = ((sector || '') + ' ' + (company || '') + ' ' + (reasoning || '')).toLowerCase();
+  if (/takeaway|restaurant|food|cafe|café|catering|kitchen|bakery|chip|kebab|shawarma|pizza|burger|deli|bistro|brasserie|sushi|noodle|curry|grill|diner|canteen|eatery|buffet|sandwich|juice|smoothie|vegan|vegetarian/.test(s)) return 'takeaway';
   if (/hotel|b&b|bed and breakfast|guest|accommodation|inn|lodge/.test(s))           return 'hotel';
   if (/hall|community|church|venue|meeting|hospice|charity/.test(s))                  return 'hall';
   if (/pool|gym|leisure|entertainment|club|sport|fitness|spa|salon/.test(s))          return 'leisure';
@@ -1491,7 +1638,7 @@ function pickTemplateKey(sector) {
 }
 
 function buildEmail(l) {
-  const t = EMAIL_TEMPLATES[pickTemplateKey(l.sector)];
+  const t = EMAIL_TEMPLATES[pickTemplateKey(l.sector, l.company, l.reasoning)];
   const company = (l.company || '').trim() || 'your business';
   const firstName = (l.director || '').trim().split(/\s+/)[0] || '';
   const name = firstName || 'there';
@@ -1586,7 +1733,18 @@ async function updateStatus(id, newStatus, notes) {
 }
 
 // ── Render sections ────────────────────────────────────────────────────────
-const _ACTIONED = ['Email Sent','Contacted','Responded','Meeting Booked','Not Relevant'];
+const _ACTIONED = ['Email Sent','Contacted','Responded','Meeting Booked','Contracted','Not Relevant'];
+
+const _BAD_DOMAINS = new Set(['email.com','domain.com','example.com','example.co.uk',
+  'test.com','placeholder.com','noemail.com','noemail.co.uk','nodomain.com','none.com']);
+const _BAD_LOCALS  = new Set(['you','user','noemail','no-email','noreply','no-reply','null','undefined']);
+function isValidEmail(e) {
+  if (!e || !e.includes('@')) return false;
+  const at = e.toLowerCase().lastIndexOf('@');
+  const local = e.slice(0, at).toLowerCase();
+  const domain = e.slice(at + 1).toLowerCase();
+  return !_BAD_DOMAINS.has(domain) && !_BAD_LOCALS.has(local);
+}
 
 function _setTabCount(id, n) {
   const el = document.getElementById(id);
@@ -1594,7 +1752,7 @@ function _setTabCount(id, n) {
 }
 
 function renderEmailQueue() {
-  const leads = _leads.filter(l => l.email && !_ACTIONED.includes(l.status))
+  const leads = _leads.filter(l => l.email && isValidEmail(l.email) && !_ACTIONED.includes(l.status))
     .sort((a,b) => (b.score||0)-(a.score||0));
   _setTabCount('tab-count-email-queue', leads.length);
   const badge = document.getElementById('email-queue-count-badge');
@@ -1605,7 +1763,7 @@ function renderEmailQueue() {
 }
 
 function renderPhoneQueue() {
-  const leads = _leads.filter(l => !l.email && l.phone && !_ACTIONED.includes(l.status))
+  const leads = _leads.filter(l => (!l.email || !isValidEmail(l.email)) && l.phone && !_ACTIONED.includes(l.status))
     .sort((a,b) => (b.score||0)-(a.score||0));
   _setTabCount('tab-count-phone-queue', leads.length);
   const badge = document.getElementById('phone-queue-count-badge');
@@ -1627,7 +1785,7 @@ function renderOutreach() {
 }
 
 function renderResponded() {
-  const leads = _leads.filter(l => ['Responded','Meeting Booked'].includes(l.status))
+  const leads = _leads.filter(l => l.status === 'Responded')
     .sort((a,b) => (b.score||0)-(a.score||0));
   _setTabCount('tab-count-responded', leads.length);
   const badge = document.getElementById('responded-count-badge');
@@ -1637,8 +1795,30 @@ function renderResponded() {
     : '<div class="empty">No responses yet.</div>';
 }
 
+function renderMeetingBooked() {
+  const leads = _leads.filter(l => l.status === 'Meeting Booked')
+    .sort((a,b) => (b.score||0)-(a.score||0));
+  _setTabCount('tab-count-meeting-booked', leads.length);
+  const badge = document.getElementById('meeting-booked-count-badge');
+  if (badge) badge.textContent = leads.length;
+  document.getElementById('meeting-booked-container').innerHTML = leads.length
+    ? leads.map(leadCard).join('')
+    : '<div class="empty">No meetings booked yet.</div>';
+}
+
+function renderContracted() {
+  const leads = _leads.filter(l => l.status === 'Contracted')
+    .sort((a,b) => (b.score||0)-(a.score||0));
+  _setTabCount('tab-count-contracted', leads.length);
+  const badge = document.getElementById('contracted-count-badge');
+  if (badge) badge.textContent = leads.length;
+  document.getElementById('contracted-container').innerHTML = leads.length
+    ? leads.map(leadCard).join('')
+    : '<div class="empty">No contracted leads yet.</div>';
+}
+
 function renderResearch() {
-  const leads = _leads.filter(l => !l.email && !l.phone && l.status !== 'Not Relevant')
+  const leads = _leads.filter(l => (!l.email || !isValidEmail(l.email)) && !l.phone && l.priority === 'High' && l.status !== 'Not Relevant')
     .sort((a,b) => (b.score||0)-(a.score||0));
   _setTabCount('tab-count-research', leads.length);
   const badge = document.getElementById('research-count-badge');

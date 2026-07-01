@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <link rel="icon" href="favicon.ico" sizes="any"/>
 <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
-<title>MacFire AI Scout — Lead Dashboard</title>
+<title>MacFire AI Scout - Lead Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="config.js" onerror="window.__configMissing=true"></script>
@@ -114,6 +114,20 @@ a{color:inherit;text-decoration:none}
 .setup-btn:hover{background:var(--brand-deep)}
 .setup-btn:active{transform:scale(.99)}
 .setup-error{color:var(--brand);font-size:12px;margin-top:-8px;margin-bottom:10px;display:none}
+/* === Auth gate ============================================================ */
+#auth-gate{display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;padding:20px}
+#auth-gate.open{display:flex}
+.auth-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:40px;width:min(380px,calc(100vw - 40px));text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.1)}
+.auth-title{font-size:21px;font-weight:700;letter-spacing:-.025em;margin:0 0 4px;color:var(--ink)}
+.auth-sub{color:var(--muted);font-size:13px;margin:0 0 26px}
+.auth-field{display:block;width:100%;box-sizing:border-box;background:#fff;border:1px solid var(--line);border-radius:8px;color:var(--ink);font-size:14px;padding:11px 14px;margin-bottom:12px;outline:none;transition:border-color .15s}
+.auth-field:focus{border-color:var(--brand)}
+.auth-btn{width:100%;background:var(--brand);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;padding:12px;cursor:pointer;margin-top:4px;transition:background .15s}
+.auth-btn:hover{background:var(--brand-deep)}
+.auth-btn:disabled{opacity:.55;cursor:not-allowed}
+.auth-error{color:var(--brand);font-size:13px;margin-top:10px;min-height:18px}
+.auth-logout-btn{font-size:11.5px;color:rgba(255,255,255,.35);background:none;border:1px solid rgba(255,255,255,.12);border-radius:5px;padding:4px 10px;cursor:pointer;margin-left:6px;transition:color .15s,border-color .15s}
+.auth-logout-btn:hover{color:rgba(255,255,255,.7);border-color:rgba(255,255,255,.22)}
 
 /* === Main ============================================================== */
 #main{display:none}
@@ -217,6 +231,7 @@ a{color:inherit;text-decoration:none}
   margin-bottom:24px;scrollbar-width:none;
 }
 .tabs::-webkit-scrollbar{display:none}
+.tab-divider{width:1px;background:rgba(255,255,255,0.15);align-self:stretch;margin:8px 4px;flex-shrink:0}
 .tab-btn{
   background:none;border:none;border-bottom:2px solid transparent;
   color:var(--muted);font-size:13.5px;font-weight:550;padding:11px 18px;cursor:pointer;
@@ -365,6 +380,9 @@ a{color:inherit;text-decoration:none}
 .btn-sm.contacted-btn{border-color:rgba(245,158,11,.4);color:#FBBF24}
 .btn-sm.draft-btn{border-color:rgba(14,165,233,.45);color:#38BDF8}
 .btn-sm.marksent-btn{border-color:rgba(16,185,129,.5);color:#34D399;background:rgba(16,185,129,.12)}
+.btn-sm.responded-btn{border-color:rgba(139,92,246,.4);color:#C4B5FD}
+.btn-sm.meeting-btn{border-color:rgba(16,185,129,.35);color:rgba(74,222,128,.85)}
+.btn-sm.won-btn{border-color:rgba(16,185,129,.6);color:#34D399;background:rgba(16,185,129,.18);font-weight:600}
 .btn-sm.returnq-btn{border-color:rgba(99,102,241,.45);color:#A5B4FC}
 .btn-sm.notrel-btn{border-color:rgba(148,163,184,.3);color:var(--muted)}
 
@@ -429,13 +447,6 @@ a{color:inherit;text-decoration:none}
 .drawer h2{font-size:19px;font-weight:700;margin:0 0 10px;padding-right:48px;
   letter-spacing:-.03em;color:var(--ink)}
 .drawer-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
-.sv-frame{
-  width:100%;aspect-ratio:16/10;background:var(--surface-2);
-  border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;
-  margin-bottom:18px;display:flex;align-items:center;justify-content:center;
-}
-.sv-frame img{width:100%;height:100%;object-fit:cover}
-.sv-frame .empty{color:var(--faint);font-size:12px}
 .drawer-section{margin-bottom:16px;font-size:13px;line-height:1.55}
 .drawer-section h3{font-size:10px;color:var(--muted);text-transform:uppercase;
   letter-spacing:.08em;margin:0 0 8px;font-weight:700}
@@ -485,28 +496,47 @@ a{color:inherit;text-decoration:none}
 </head>
 <body>
 
+<!-- Auth gate -->
+<div id="auth-gate">
+  <div class="auth-card">
+    <svg viewBox="0 0 270 100" width="160" aria-label="MacFire Ltd" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 20px">
+      <rect width="270" height="100" fill="#1A1F3C"/>
+      <rect x="2" y="69" width="266" height="29" fill="#ffffff"/>
+      <text x="7" y="57" font-family="Impact,'Arial Black',sans-serif" font-size="46" fill="#ffffff" textLength="107" lengthAdjust="spacingAndGlyphs">Mac</text>
+      <text x="119" y="57" font-family="Impact,'Arial Black',sans-serif" font-size="46" fill="#ffffff" textLength="92" lengthAdjust="spacingAndGlyphs">Fire</text>
+      <text x="213" y="57" font-family="Impact,'Arial Black',sans-serif" font-size="34" fill="#ffffff" textLength="53" lengthAdjust="spacingAndGlyphs">Ltd</text>
+      <text x="135" y="83" text-anchor="middle" dominant-baseline="central" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="17" fill="#C31E1F" letter-spacing="1.5">Fire Protection Company</text>
+    </svg>
+    <div class="auth-title">AI Lead Scout</div>
+    <div class="auth-sub">Sign in to continue</div>
+    <input id="auth-email" type="email" class="auth-field" placeholder="Email address" autocomplete="email">
+    <input id="auth-password" type="password" class="auth-field" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button id="auth-submit" class="auth-btn" onclick="doLogin()">Sign in</button>
+    <div id="auth-error" class="auth-error"></div>
+  </div>
+</div>
+
 <!-- Setup screen -->
 <div id="setup-screen">
   <div class="setup-card">
     <div class="setup-logo">
       <svg viewBox="0 0 270 100" height="40" aria-label="MacFire Ltd" xmlns="http://www.w3.org/2000/svg">
         <rect width="270" height="100" fill="#1A1F3C"/>
-        <rect x="2" y="2" width="117" height="67" fill="#ffffff"/>
         <rect x="2" y="69" width="266" height="29" fill="#ffffff"/>
-        <text x="7" y="57" font-family="Impact,'Arial Black',sans-serif" font-size="46" fill="#1A1F3C" textLength="107" lengthAdjust="spacingAndGlyphs">Mac</text>
+        <text x="7" y="57" font-family="Impact,'Arial Black',sans-serif" font-size="46" fill="#ffffff" textLength="107" lengthAdjust="spacingAndGlyphs">Mac</text>
         <text x="119" y="57" font-family="Impact,'Arial Black',sans-serif" font-size="46" fill="#ffffff" textLength="92" lengthAdjust="spacingAndGlyphs">Fire</text>
         <text x="213" y="57" font-family="Impact,'Arial Black',sans-serif" font-size="34" fill="#ffffff" textLength="53" lengthAdjust="spacingAndGlyphs">Ltd</text>
         <text x="135" y="83" text-anchor="middle" dominant-baseline="central" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="17" fill="#C31E1F" letter-spacing="1.5">Fire Protection Company</text>
       </svg>
     </div>
-    <h2>Connect to Supabase</h2>
-    <p>Enter your Supabase project URL and anon key. These are saved in your browser and never committed to the repository.</p>
+    <h2>Connect to the production database</h2>
+    <p>Enter the project URL and anon key. These are saved in your browser and never committed to the repository.</p>
     <div class="field-group">
-      <label>Supabase Project URL</label>
-      <input type="text" id="cfg-url" placeholder="https://xxxx.supabase.co" autocomplete="off"/>
+      <label>Project URL</label>
+      <input type="text" id="cfg-url" placeholder="https://project-url.example" autocomplete="off"/>
     </div>
     <div class="field-group">
-      <label>Supabase Anon Key</label>
+      <label>Anon key</label>
       <input type="text" id="cfg-key" placeholder="eyJhbGci..." autocomplete="off"/>
     </div>
     <div class="field-group">
@@ -526,9 +556,8 @@ a{color:inherit;text-decoration:none}
     <div class="header-logo">
       <svg viewBox="0 0 270 100" height="38" aria-label="MacFire Ltd" xmlns="http://www.w3.org/2000/svg">
         <rect width="270" height="100" fill="#1A1F3C"/>
-        <rect x="2" y="2" width="117" height="67" fill="#ffffff"/>
         <rect x="2" y="69" width="266" height="29" fill="#ffffff"/>
-        <text x="7" y="57" font-family="Impact,'Arial Black',sans-serif" font-size="46" fill="#1A1F3C" textLength="107" lengthAdjust="spacingAndGlyphs">Mac</text>
+        <text x="7" y="57" font-family="Impact,'Arial Black',sans-serif" font-size="46" fill="#ffffff" textLength="107" lengthAdjust="spacingAndGlyphs">Mac</text>
         <text x="119" y="57" font-family="Impact,'Arial Black',sans-serif" font-size="46" fill="#ffffff" textLength="92" lengthAdjust="spacingAndGlyphs">Fire</text>
         <text x="213" y="57" font-family="Impact,'Arial Black',sans-serif" font-size="34" fill="#ffffff" textLength="53" lengthAdjust="spacingAndGlyphs">Ltd</text>
         <text x="135" y="83" text-anchor="middle" dominant-baseline="central" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="17" fill="#C31E1F" letter-spacing="1.5">Fire Protection Company</text>
@@ -538,7 +567,8 @@ a{color:inherit;text-decoration:none}
       <div class="hdr-title">AI Lead Scout</div>
     </div>
     <span class="hdr-divider"></span>
-    <a href="index.html" class="hdr-classic">Classic view</a>
+    <a href="index.html" class="hdr-classic">Dark mode</a>
+    <button class="auth-logout-btn" onclick="doLogout()">Sign out</button>
   </div>
   <div class="header-right">
     <div class="header-run" id="header-run">
@@ -559,23 +589,23 @@ a{color:inherit;text-decoration:none}
   <div class="grid-4">
     <div class="stat-card accent">
       <div class="label">Total Leads</div>
-      <div class="value num" id="kpi-total">—</div>
+      <div class="value num" id="kpi-total">-</div>
       <div class="sub" id="kpi-days">Loading…</div>
     </div>
     <div class="stat-card">
       <div class="label">High Priority</div>
-      <div class="value num v2-brand" id="kpi-high">—</div>
+      <div class="value num v2-brand" id="kpi-high">-</div>
       <div class="sub">Score 75+</div>
     </div>
     <div class="stat-card">
-      <div class="label">Email Queue</div>
-      <div class="value num v2-amber" id="kpi-ready">—</div>
-      <div class="sub">Has email, not yet sent</div>
+      <div class="label">Qualified</div>
+      <div class="value num v2-amber" id="kpi-ready">-</div>
+      <div class="sub">Email or phone, not yet contacted</div>
     </div>
     <div class="stat-card">
       <div class="label">Contacted</div>
-      <div class="value num" id="kpi-contacted">—</div>
-      <div class="sub" id="kpi-responded">— responded</div>
+      <div class="value num" id="kpi-contacted">-</div>
+      <div class="sub" id="kpi-responded">- responded</div>
     </div>
   </div>
 
@@ -583,22 +613,22 @@ a{color:inherit;text-decoration:none}
   <div class="grid-4" style="margin-top:-8px;margin-bottom:24px">
     <div class="stat-card">
       <div class="label">Meetings Booked</div>
-      <div class="value num v2-brand" id="kpi-meetings">—</div>
+      <div class="value num v2-brand" id="kpi-meetings">-</div>
       <div class="sub">From pipeline</div>
     </div>
     <div class="stat-card">
       <div class="label">Contracted</div>
-      <div class="value num v2-green" id="kpi-contracted">—</div>
+      <div class="value num v2-green" id="kpi-contracted">-</div>
       <div class="sub">Signed customers</div>
     </div>
     <div class="stat-card">
       <div class="label">Contact Info Needed</div>
-      <div class="value num v2-amber" id="kpi-research">—</div>
+      <div class="value num v2-amber" id="kpi-research">-</div>
       <div class="sub">High priority, no contact</div>
     </div>
     <div class="stat-card">
       <div class="label">Needs Profile Data</div>
-      <div class="value num v2-muted" id="kpi-insufficient">—</div>
+      <div class="value num v2-muted" id="kpi-insufficient">-</div>
       <div class="sub">High priority, incomplete</div>
     </div>
   </div>
@@ -617,13 +647,13 @@ a{color:inherit;text-decoration:none}
         <div id="pipeline-container"><div class="loading">Loading</div></div>
       </div>
       <div class="panel">
-        <h3>Priority split</h3>
+        <h3>Priority split (all leads)</h3>
         <div class="chart-wrap"><canvas id="priorityChart"></canvas></div>
       </div>
     </div>
     <div class="grid-charts">
       <div class="panel">
-        <h3>Leads by sector</h3>
+        <h3>Leads by sector (high priority)</h3>
         <div class="chart-wrap"><canvas id="sectorChart"></canvas></div>
       </div>
       <div class="panel">
@@ -637,8 +667,11 @@ a{color:inherit;text-decoration:none}
   <nav class="tabs">
     <button class="tab-btn active" data-tab="email-queue">Email Queue<span class="tab-count" id="tc-email-queue">0</span></button>
     <button class="tab-btn" data-tab="phone-queue">Phone Queue<span class="tab-count" id="tc-phone-queue">0</span></button>
-    <button class="tab-btn" data-tab="outreach">Outreach<span class="tab-count" id="tc-outreach">0</span></button>
+    <button class="tab-btn" data-tab="outreach">Contacted<span class="tab-count" id="tc-outreach">0</span></button>
     <button class="tab-btn" data-tab="responded">Responded<span class="tab-count" id="tc-responded">0</span></button>
+    <button class="tab-btn" data-tab="meeting-booked">Meeting Booked<span class="tab-count" id="tc-meeting-booked">0</span></button>
+    <button class="tab-btn" data-tab="contracted">Contracted<span class="tab-count" id="tc-contracted">0</span></button>
+    <div class="tab-divider" aria-hidden="true"></div>
     <button class="tab-btn" data-tab="research">Research<span class="tab-count" id="tc-research">0</span></button>
     <button class="tab-btn" data-tab="not-relevant">Not relevant<span class="tab-count" id="tc-not-relevant">0</span></button>
   </nav>
@@ -661,7 +694,7 @@ a{color:inherit;text-decoration:none}
 
   <div id="tab-outreach" class="tab-pane">
     <div class="section-header">
-      <h2 class="section-title">Outreach in progress</h2>
+      <h2 class="section-title">Contacted</h2>
       <span class="section-meta">Email sent or call made, awaiting response</span>
     </div>
     <div class="lead-list" id="outreach-container"><div class="loading">Loading</div></div>
@@ -669,16 +702,32 @@ a{color:inherit;text-decoration:none}
 
   <div id="tab-responded" class="tab-pane">
     <div class="section-header">
-      <h2 class="section-title">Responded or meeting booked</h2>
-      <span class="section-meta">Lead has replied or a meeting is in the diary</span>
+      <h2 class="section-title">Responded</h2>
+      <span class="section-meta">Lead has replied, meeting not yet booked</span>
     </div>
     <div class="lead-list" id="responded-container"><div class="loading">Loading</div></div>
+  </div>
+
+  <div id="tab-meeting-booked" class="tab-pane">
+    <div class="section-header">
+      <h2 class="section-title">Meeting Booked</h2>
+      <span class="section-meta">Meeting in the diary, not yet contracted</span>
+    </div>
+    <div class="lead-list" id="meeting-booked-container"><div class="loading">Loading</div></div>
+  </div>
+
+  <div id="tab-contracted" class="tab-pane">
+    <div class="section-header">
+      <h2 class="section-title">Contracted</h2>
+      <span class="section-meta">Customer signed up</span>
+    </div>
+    <div class="lead-list" id="contracted-container"><div class="loading">Loading</div></div>
   </div>
 
   <div id="tab-research" class="tab-pane">
     <div class="section-header">
       <h2 class="section-title">Needs contact info</h2>
-      <span class="section-meta">No email or phone on file yet, needs research before outreach</span>
+      <span class="section-meta">High priority leads with no valid contact info yet</span>
     </div>
     <div class="lead-list" id="research-container"><div class="loading">Loading</div></div>
   </div>
@@ -747,6 +796,7 @@ const C = {
 // Pipeline status colours
 const PIPE_COLOR = {
   'New Lead':      C.indigo,
+  'Qualified':     C.ok,
   'Contacted':     C.amber,
   'Email Sent':    '#38BDF8',
   'Responded':     C.ok,
@@ -861,15 +911,55 @@ function hideSetup() {
 }
 
 // === Init ================================================================
-function init() {
+async function init() {
   const cfg = getConfig();
   if (!cfg || !cfg.supabaseUrl || !cfg.supabaseKey) { showSetup(); return; }
   hideSetup();
   applyFiltersFromUrl();
   _sb = supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey);
+
+  _sb.auth.onAuthStateChange((event, session) => {
+    if (session) {
+      document.getElementById('auth-gate').classList.remove('open');
+      if (event === 'SIGNED_IN') {
+        _analyticsReady = true;
+        trackEvent('dashboard_opened', { source:'supabase' });
+        loadData();
+      }
+    } else {
+      document.getElementById('auth-gate').classList.add('open');
+    }
+  });
+
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) {
+    document.getElementById('auth-gate').classList.add('open');
+    return;
+  }
+  document.getElementById('auth-gate').classList.remove('open');
   _analyticsReady = true;
   trackEvent('dashboard_opened', { source:'supabase' });
   loadData();
+}
+
+async function doLogin() {
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl    = document.getElementById('auth-error');
+  const btn      = document.getElementById('auth-submit');
+  errEl.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+  const { error } = await _sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    errEl.textContent = 'Incorrect email or password.';
+    btn.disabled = false;
+    btn.textContent = 'Sign in';
+  }
+}
+
+async function doLogout() {
+  await _sb.auth.signOut();
 }
 
 // === Data loading ========================================================
@@ -897,7 +987,7 @@ async function loadData() {
   } catch(e) {
     console.error(e);
     document.getElementById('last-updated').textContent = 'Error';
-    showBanner('error', `Supabase error: <strong>${e.message || e}</strong>. Check the URL and key, or click Config to update them.`);
+    showBanner('error', `Database error: <strong>${e.message || e}</strong>. Check the URL and key, or click Config to update them.`);
   }
 }
 function refreshData() {
@@ -984,16 +1074,18 @@ function enrichLead(l) {
 
 // === Stats ===============================================================
 function computeStats(leads) {
-  const sc = { 'New Lead':0,'Contacted':0,'Email Sent':0,'Responded':0,'Meeting Booked':0,'No Response':0,'Not Relevant':0 };
+  const sc     = { 'New Lead':0,'Qualified':0,'Contacted':0,'Email Sent':0,'Responded':0,'Meeting Booked':0,'Contracted':0,'No Response':0,'Not Relevant':0 };
+  const scHigh = { 'New Lead':0,'Qualified':0,'Contacted':0,'Email Sent':0,'Responded':0,'Meeting Booked':0,'Contracted':0,'No Response':0,'Not Relevant':0 };
   const pc = { High:0, Medium:0, Low:0 };
+  const priorityAll = { High:0, Medium:0, Low:0 };
   const sectors = {};
   const scores  = { '90-100':0,'75-89':0,'60-74':0,'50-59':0,'<50':0 };
   let contacted=0, responded=0, meetings=0, contracted=0;
   leads.forEach(l => {
     if (sc[l.status] !== undefined) sc[l.status]++;
-    if (l.status !== 'Not Relevant' && pc[l.priority] !== undefined) pc[l.priority]++;
-    const s = l.sector || 'Other';
-    sectors[s] = (sectors[s]||0) + 1;
+    if (l.priority === 'High' && scHigh[l.status] !== undefined) scHigh[l.status]++;
+    if (l.priority === 'High' && l.status !== 'Not Relevant') sc['Qualified']++;
+    if (priorityAll[l.priority] !== undefined) priorityAll[l.priority]++;
     const scr = l.score || 0;
     if (scr >= 90) scores['90-100']++;
     else if (scr >= 75) scores['75-89']++;
@@ -1005,6 +1097,12 @@ function computeStats(leads) {
     if (l.status === 'Meeting Booked') meetings++;
     if (['contracted','customer','won','closed won'].includes((l.status||'').toLowerCase())) contracted++;
   });
+  const high = leads.filter(l => l.priority === 'High' && l.status !== 'Not Relevant');
+  high.forEach(l => {
+    if (pc[l.priority] !== undefined) pc[l.priority]++;
+    const s = l.sector || 'Other';
+    sectors[s] = (sectors[s]||0) + 1;
+  });
   const queueCounts = {
     Ready:        leads.filter(l =>                          l.enrichmentQueue === 'Ready'        && l.status !== 'Not Relevant').length,
     Research:     leads.filter(l => l.priority === 'High' && l.enrichmentQueue === 'Research'     && l.status !== 'Not Relevant').length,
@@ -1015,8 +1113,7 @@ function computeStats(leads) {
   const todayLeads = lastDate ? leads.filter(l => l.scout_date === lastDate) : [];
   const todayPriority = { High:0, Medium:0, Low:0 };
   todayLeads.forEach(l => { if (todayPriority[l.priority] !== undefined) todayPriority[l.priority]++; });
-  const high = leads.filter(l => l.priority === 'High' && l.status !== 'Not Relevant');
-  return { sc, pc, sectors, scores, contacted, responded, meetings, contracted,
+  return { sc, scHigh, pc, priorityAll, sectors, scores, contacted, responded, meetings, contracted,
     queueCounts, high, dates, lastDate, todayLeads, todayPriority };
 }
 
@@ -1030,8 +1127,9 @@ function renderAll_data() {
   document.getElementById('kpi-total').textContent        = _leads.length;
   document.getElementById('kpi-days').textContent         = `${stats.dates.length} scout run${stats.dates.length !== 1 ? 's' : ''}`;
   document.getElementById('kpi-high').textContent         = stats.pc.High;
-  const _emailQ = _leads.filter(l => l.email && !['Email Sent','Contacted','Responded','Meeting Booked','Not Relevant'].includes(l.status));
-  document.getElementById('kpi-ready').textContent        = _emailQ.length;
+  const _eQ = _leads.filter(l => l.email && isValidEmail(l.email) && !['Email Sent','Contacted','Responded','Meeting Booked','Contracted','Not Relevant'].includes(l.status));
+  const _pQ = _leads.filter(l => (!l.email || !isValidEmail(l.email)) && l.phone && !['Email Sent','Contacted','Responded','Meeting Booked','Contracted','Not Relevant'].includes(l.status));
+  document.getElementById('kpi-ready').textContent        = _eQ.length + _pQ.length;
   document.getElementById('kpi-contacted').textContent    = stats.contacted;
   document.getElementById('kpi-responded').textContent    = `${stats.responded} responded`;
   document.getElementById('kpi-meetings').textContent     = stats.meetings;
@@ -1053,19 +1151,23 @@ function renderAll_data() {
     document.getElementById('header-run').classList.remove('visible');
   }
 
-  const _DONE    = ['Email Sent','Contacted','Responded','Meeting Booked','Not Relevant'];
-  const emailQ   = _leads.filter(l => l.email && !_DONE.includes(l.status));
-  const phoneQ   = _leads.filter(l => !l.email && l.phone && !_DONE.includes(l.status));
-  const outreach = _leads.filter(l => ['Email Sent','Contacted'].includes(l.status));
-  const responded= _leads.filter(l => ['Responded','Meeting Booked'].includes(l.status));
-  const research = _leads.filter(l => !l.email && !l.phone && l.status !== 'Not Relevant');
-  const nrLeads  = _leads.filter(l => l.status === 'Not Relevant');
-  setTabCount('tc-email-queue', emailQ.length);
-  setTabCount('tc-phone-queue', phoneQ.length);
-  setTabCount('tc-outreach',    outreach.length);
-  setTabCount('tc-responded',   responded.length);
-  setTabCount('tc-research',    research.length);
-  setTabCount('tc-not-relevant',nrLeads.length);
+  const _DONE       = ['Email Sent','Contacted','Responded','Meeting Booked','Contracted','Not Relevant'];
+  const emailQ      = _leads.filter(l => l.email && isValidEmail(l.email) && !_DONE.includes(l.status));
+  const phoneQ      = _leads.filter(l => (!l.email || !isValidEmail(l.email)) && l.phone && !_DONE.includes(l.status));
+  const outreach    = _leads.filter(l => ['Email Sent','Contacted'].includes(l.status));
+  const responded   = _leads.filter(l => l.status === 'Responded');
+  const meetingBooked = _leads.filter(l => l.status === 'Meeting Booked');
+  const contracted  = _leads.filter(l => l.status === 'Contracted');
+  const research    = _leads.filter(l => (!l.email || !isValidEmail(l.email)) && !l.phone && l.priority === 'High' && l.status !== 'Not Relevant');
+  const nrLeads     = _leads.filter(l => l.status === 'Not Relevant');
+  setTabCount('tc-email-queue',   emailQ.length);
+  setTabCount('tc-phone-queue',   phoneQ.length);
+  setTabCount('tc-outreach',      outreach.length);
+  setTabCount('tc-responded',     responded.length);
+  setTabCount('tc-meeting-booked',meetingBooked.length);
+  setTabCount('tc-contracted',    contracted.length);
+  setTabCount('tc-research',      research.length);
+  setTabCount('tc-not-relevant',  nrLeads.length);
 
   _stats = stats;
   if (document.getElementById('analytics-body').classList.contains('open')) {
@@ -1076,15 +1178,19 @@ function renderAll_data() {
   renderPhoneQueue();
   renderOutreach();
   renderResponded();
+  renderMeetingBooked();
+  renderContracted();
   renderResearch();
   renderNotRelevant();
 }
 
 // === Pipeline ============================================================
 function renderPipeline(sc) {
-  const max = Math.max(...Object.values(sc), 1);
+  const merged = { ...sc, Contacted: (sc['Contacted'] || 0) + (sc['Email Sent'] || 0) };
+  const rows = Object.entries(merged).filter(([k]) => k !== 'Email Sent' && k !== 'No Response');
+  const max = Math.max(...rows.map(([,v]) => v), 1);
   document.getElementById('pipeline-container').innerHTML =
-    Object.entries(sc).map(([k,v]) => `
+    rows.map(([k,v]) => `
       <div class="pipeline-row">
         <span class="pipeline-label">${k}</span>
         <span class="pipeline-track">
@@ -1106,7 +1212,7 @@ function renderCharts(stats) {
     data:{
       labels:['High','Medium','Low'],
       datasets:[{
-        data:[stats.pc.High, stats.pc.Medium, stats.pc.Low],
+        data:[stats.priorityAll.High, stats.priorityAll.Medium, stats.priorityAll.Low],
         backgroundColor:[C.brand, C.amber, C.neutral],
         borderWidth:3, borderColor:'#fff'
       }]
@@ -1202,10 +1308,6 @@ function openLeadDrawer(id) {
   const l = _leads.find(x => x.id === id);
   if (!l) return;
   trackEvent('lead_drawer_opened', compactLeadMeta(l));
-  const sv = l.streetview_url || l.street_view || '';
-  const svBlock = sv
-    ? `<div class="sv-frame"><img src="${esc(sv)}" alt="Street View" onerror="this.parentNode.innerHTML='<div class=&quot;empty&quot;>Street View unavailable</div>'"/></div>`
-    : '<div class="sv-frame"><div class="empty">No Street View available</div></div>';
   const row = (k,v) => v===null||v===undefined||v===''||v===false
     ? '' : `<div class="row"><span class="k">${esc(k)}</span><span class="v">${v}</span></div>`;
   const dlink = (url, label, evt='lead_external_link_opened') => url
@@ -1226,22 +1328,19 @@ function openLeadDrawer(id) {
       ${statusBadge(l.status)}
       ${l.sector ? `<span class="badge b-plain">${esc(l.sector)}</span>` : ''}
     </div>
-    ${svBlock}
     <div class="drawer-section">
       <h3>Location</h3>
       ${row('Address',esc(l.address||''))}
       ${row('Postcode',esc(l.postcode||''))}
-      ${row('Maps',dlink(l.maps_url,'Open in Google Maps','lead_maps_opened'))}
-      ${row('Street View',dlink(sv,'Full-size Street View','lead_street_view_opened'))}
       ${row('Google Places',esc(l.google_places||''))}
     </div>
     <div class="drawer-section">
       <h3>Confidence</h3>
       <div class="conf-grid">
-        <div class="cell"><div class="cnum">${l.premises_confidence??'—'}</div><div class="clab">Premises</div></div>
-        <div class="cell"><div class="cnum">${l.operational_confidence??'—'}</div><div class="clab">Operational</div></div>
-        <div class="cell"><div class="cnum">${l.compliance_confidence??'—'}</div><div class="clab">Compliance</div></div>
-        <div class="cell"><div class="cnum">${l.contactability_confidence??'—'}</div><div class="clab">Reach</div></div>
+        <div class="cell"><div class="cnum">${l.premises_confidence??'-'}</div><div class="clab">Premises</div></div>
+        <div class="cell"><div class="cnum">${l.operational_confidence??'-'}</div><div class="clab">Operational</div></div>
+        <div class="cell"><div class="cnum">${l.compliance_confidence??'-'}</div><div class="clab">Compliance</div></div>
+        <div class="cell"><div class="cnum">${l.contactability_confidence??'-'}</div><div class="clab">Reach</div></div>
       </div>
     </div>
     <div class="drawer-section">
@@ -1450,93 +1549,75 @@ document.addEventListener('click', ev => {
 // === Outreach email system ================================================
 const EMAIL_TEMPLATES = {
   takeaway: {
-    subject: 'Fire safety for [Company] — quick question',
+    subject: 'Fire safety for [Company]: quick question',
     body:
 `Hi [Name],
 
-Congratulations on the new venture. I spotted that [Company] recently registered in your area, and as someone who has looked after fire safety for food businesses across Scotland for over twenty years, I always like to reach out early.
+I saw [Company] has recently been registered and thought it was worth getting in touch early.
 
-Getting the right kit in place from the start is a lot simpler than catching up later, and it means one less thing on your list as you get the doors open.
+I have looked after fire safety for food businesses across Scotland for over forty years. Whether you are opening from scratch or taking over an existing place, it is usually easier to review the basics early than to catch up once staff, customers and insurers are already involved.
 
-If you have not sorted your fire extinguishers, emergency lighting, or annual service yet, I would be happy to give you a quick quote. No obligation, just want to make sure you are covered properly.
+If you have not reviewed your fire extinguishers, emergency lighting, fire alarm or annual services yet, I would be happy to give you a quick steer or quote. No obligation, just practical advice so you know what normally needs checked.
 
-Worth a five-minute call?
-
-Best,
-Dougie
-MacFire Fire Protection`
+If useful, reply with where you are up to and I can point you in the right direction. Happy to do that by email, or we can have a quick call if easier.`
   },
   hotel: {
     subject: 'Fire protection for [Company]',
     body:
 `Hi [Name],
 
-I came across [Company] and wanted to get in touch. We specialise in fire safety for hospitality businesses across Scotland, and with a new registration on record I thought it was worth a quick hello.
+I saw [Company] has recently been registered and thought it was worth getting in touch. We specialise in fire safety for hospitality and guest accommodation businesses across Scotland.
 
-Compliance requirements for overnight accommodation are specific, and getting the right advice early saves a lot of time and expense down the line.
+The requirements for overnight accommodation can be more specific than people expect, especially around risk assessments, extinguishers, fire alarms, emergency lights, and the annual checks insurers will want to see.
 
-We handle everything: risk assessments, extinguishers, servicing and the annual checks your insurer will want to see. One point of contact, no jargon.
+Whether this is a new site or an existing place under new ownership, getting the right advice early normally saves time and cost later. We keep it straightforward: one point of contact, no jargon, and a clear view of what needs done.
 
-If you are still putting things in place, I would be glad to help. Are you free for a quick chat this week?
-
-Best,
-Dougie
-MacFire Fire Protection`
+If you are still putting things in place, I would be glad to help. Reply with where you are up to and I can let you know what normally needs checked. Happy to do that by email, or we can have a quick call if easier.`
   },
   hall: {
     subject: 'Fire safety checks for [Company]',
     body:
 `Hi [Name],
 
-I noticed [Company] has recently registered and wanted to make contact. We look after fire safety for community venues, church halls and meeting spaces across Scotland, and it is an area where compliance requirements can catch people out if they are not on top of them.
+I saw [Company] has recently been registered and wanted to make contact. We look after fire safety for community venues, church halls and meeting spaces across Scotland.
 
-If you are opening a new venue or taking on an existing one, the key things to have in place are a current fire risk assessment, the right extinguishers for the space, and a service plan to keep everything up to date.
+These spaces often have changing users, volunteers, bookings and public access, so it is worth getting the basics clear early: a current fire risk assessment, the right extinguishers, emergency lighting & fire alarms for the space, and a service plan to keep everything up to date.
 
-Happy to run through what you need at no charge, so you know exactly where you stand before you open the doors.
+Happy to run through what you normally need at no charge, so you know exactly where you stand before opening, reopening or taking on new bookings.
 
-Would that be useful?
-
-Best,
-Dougie
-MacFire Fire Protection`
+If useful, reply with where you are up to and I can point you in the right direction. Happy to do that by email, or we can have a quick call if easier.`
   },
   leisure: {
     subject: 'Fire protection for [Company]',
     body:
 `Hi [Name],
 
-Congratulations on the new registration. We work with leisure and entertainment businesses across Scotland on fire safety, and I always like to reach out when I see a new venue coming through.
+I saw [Company] has recently been registered and thought it was worth getting in touch early.
 
-With a space that will have members of the public through the door regularly, it is worth making sure your fire protection is right from the start. We cover everything from extinguishers and emergency lighting through to annual inspections and staff training.
+We work with leisure and entertainment businesses across Scotland. Whether the venue is brand new or an existing place under new ownership, it is worth checking the basics before things get busy.
 
-If you have not sorted this yet, I can get you a quote quickly. No pressure, just want to make sure you are in good shape.
+We can help with extinguishers, emergency lighting, fire alarms, annual inspections and staff training, and give you a clear steer on what is actually needed.
 
-Worth a call?
-
-Best,
-Dougie
-MacFire Fire Protection`
+If you have not reviewed this yet, I can get you a quote quickly. No pressure. If useful, reply with where you are up to and I can point you in the right direction, or we can have a quick call if easier.`
   },
   general: {
-    subject: 'Fire safety — quick note for [Company]',
+    subject: 'Fire safety: quick note for [Company]',
     body:
 `Hi [Name],
 
-I noticed [Company] has recently come up on my radar and wanted to make contact. We work with businesses across Scotland on fire safety, from annual servicing through to full risk assessments, and we are used to stepping in when things have not been kept up to date.
+I saw [Company] has recently been registered and thought it was worth getting in touch early.
 
-If you would like a quick overview of where things stand, I am happy to run through it with you. It would not take long and there is no commitment.
+We work with businesses across Scotland on fire safety, from annual servicing through to full risk assessments, and we are used to helping owners understand what needs done without making it more complicated than it has to be.
 
-Worth a five-minute call?
+Whether this is a new site or an existing place under new ownership, it is usually easier to check the basics now than to deal with gaps later when staff, customers or insurers are already involved.
 
-Best,
-Dougie
-MacFire Fire Protection`
+If useful, reply with where you are up to and I can let you know what normally needs checked. Happy to do that by email, or we can have a quick call if easier.`
   }
 };
 
-function pickTemplateKey(sector) {
-  const s = (sector || '').toLowerCase();
-  if (/takeaway|restaurant|food|cafe|café|catering|kitchen|bakery|chip/.test(s)) return 'takeaway';
+function pickTemplateKey(sector, company, reasoning) {
+  const s = ((sector || '') + ' ' + (company || '') + ' ' + (reasoning || '')).toLowerCase();
+  if (/takeaway|restaurant|food|cafe|café|catering|kitchen|bakery|chip|kebab|shawarma|pizza|burger|deli|bistro|brasserie|sushi|noodle|curry|grill|diner|canteen|eatery|buffet|sandwich|juice|smoothie|vegan|vegetarian/.test(s)) return 'takeaway';
   if (/hotel|b&b|bed and breakfast|guest|accommodation|inn|lodge/.test(s))       return 'hotel';
   if (/hall|community|church|venue|meeting|hospice|charity/.test(s))              return 'hall';
   if (/pool|gym|leisure|entertainment|club|sport|fitness|spa|salon/.test(s))      return 'leisure';
@@ -1544,7 +1625,7 @@ function pickTemplateKey(sector) {
 }
 
 function buildEmail(l) {
-  const t = EMAIL_TEMPLATES[pickTemplateKey(l.sector)];
+  const t = EMAIL_TEMPLATES[pickTemplateKey(l.sector, l.company, l.reasoning)];
   const company = (l.company || '').trim() || 'your business';
   const firstName = (l.director || '').trim().split(/\s+/)[0] || '';
   const name = firstName || 'there';
@@ -1553,6 +1634,43 @@ function buildEmail(l) {
 }
 
 const _emailDrafted = new Set();
+
+// === Email quality detection ==============================================
+const AGENT_DOMAINS  = ['clydeoffices.com','companiesmadesimple.com','1stformations.com','formationshouse.com','simplesimple.co.uk','companywizard.co.uk'];
+const GENERIC_LOCALS = ['info','contact','admin','hello','enquiries','enquiry','office','mail','post','accounts','reception','general','support','team'];
+
+function isGenericEmail(email) {
+  if (!email) return false;
+  const [local, domain] = email.toLowerCase().split('@');
+  if (!domain) return false;
+  if (AGENT_DOMAINS.some(d => domain === d)) return 'agent';
+  if (GENERIC_LOCALS.includes(local)) return 'generic';
+  return false;
+}
+
+function emailWarningBadge(email) {
+  const kind = isGenericEmail(email);
+  if (kind === 'agent')   return ' <span style="font-size:10px;background:#FEF3C7;color:#92400E;border-radius:3px;padding:1px 5px;font-weight:600">Formation agent</span>';
+  if (kind === 'generic') return ' <span style="font-size:10px;background:#FEF3C7;color:#92400E;border-radius:3px;padding:1px 5px;font-weight:600">Generic address</span>';
+  return '';
+}
+
+async function markEmailBounced(id) {
+  if (!confirm('Mark as bounced? This clears the email address and returns the lead to the phone queue.')) return;
+  const cfg   = getConfig();
+  const table = cfg?.table || 'leads';
+  const btns  = document.querySelectorAll(`[data-id="${id}"] button`);
+  btns.forEach(b => b.disabled = true);
+  try {
+    const { error } = await _sb.from(table).update({ status: 'New Lead', email: null }).eq('id', id);
+    if (error) throw error;
+    _leads = _leads.map(l => l.id === id ? enrichLead({ ...l, status: 'New Lead', email: null }) : l);
+    renderAll_data();
+  } catch(e) {
+    console.error('Bounce update failed:', e);
+    btns.forEach(b => b.disabled = false);
+  }
+}
 
 function draftEmail(id) {
   const l = _leads.find(x => x.id === id);
@@ -1594,12 +1712,6 @@ function cancelDraft(id) {
 // === Lead card ===========================================================
 
 function leadCard(l) {
-  const maps = l.maps_url
-    ? `<a class="btn-sm" href="${esc(l.maps_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" data-analytics-event="lead_maps_opened" data-lead-id="${esc(l.id)}">Map</a>`
-    : '';
-  const sv = l.street_view
-    ? `<a class="btn-sm" href="${esc(l.street_view)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" data-analytics-event="lead_street_view_opened" data-lead-id="${esc(l.id)}">Street view</a>`
-    : '';
   const website = l.website
     ? `<a href="${esc(l.website)}" target="_blank" rel="noopener" style="color:var(--brand)" onclick="event.stopPropagation()" data-analytics-event="lead_website_opened" data-lead-id="${esc(l.id)}">${esc(l.website.replace(/^https?:\/\//,''))}</a>`
     : '';
@@ -1625,28 +1737,30 @@ function leadCard(l) {
       ${l.director  ? `<div><strong>Director:</strong> ${esc(l.director)}</div>` : ''}
       ${l.address   ? `<div><strong>Address:</strong> ${esc(l.address)}</div>` : ''}
       ${l.phone     ? `<div><strong>Phone:</strong> ${esc(l.phone)}</div>` : ''}
-      ${email       ? `<div><strong>Email:</strong> ${email}</div>` : ''}
+      ${email       ? `<div><strong>Email:</strong> ${email}${emailWarningBadge(l.email)}</div>` : ''}
       ${website     ? `<div><strong>Website:</strong> ${website}${l.websiteConfidence ? ` <span style="font-size:10px;color:var(--muted)">(${esc(l.websiteConfidence)})</span>` : ''}</div>` : ''}
       ${l.incorporated ? `<div><strong>Incorporated:</strong> ${esc(l.incorporated)}</div>` : ''}
       ${l.google_places ? `<div><strong>Google:</strong> ${esc(l.google_places)}</div>` : ''}
-      ${[l.premises_confidence,l.operational_confidence,l.compliance_confidence,l.contactability_confidence].some(v=>v!==null&&v!==undefined&&v!=='') ? `<div><strong>Confidence:</strong> P ${esc(l.premises_confidence??'—')} · O ${esc(l.operational_confidence??'—')} · C ${esc(l.compliance_confidence??'—')} · X ${esc(l.contactability_confidence??'—')}</div>` : ''}
+      ${[l.premises_confidence,l.operational_confidence,l.compliance_confidence,l.contactability_confidence].some(v=>v!==null&&v!==undefined&&v!=='') ? `<div><strong>Confidence:</strong> P ${esc(l.premises_confidence??'-')} · O ${esc(l.operational_confidence??'-')} · C ${esc(l.compliance_confidence??'-')} · X ${esc(l.contactability_confidence??'-')}</div>` : ''}
       ${l.profile_status ? `<div><strong>Profile:</strong> ${esc(l.profile_status.replace(/_/g,' '))}${l.missing_profile_fields ? ` · Missing ${esc(l.missing_profile_fields)}` : ''}</div>` : ''}
       ${l.reasoning ? `<div><strong>Reason:</strong> ${esc(l.reasoning)}</div>` : ''}
       ${l.relevance_notes ? `<div class="nr-notes-snippet">Notes: ${esc(l.relevance_notes)}</div>` : ''}
     </div>
     ${l.flags ? `<div class="flags-text" title="${esc(l.flags)}">&#9873; ${esc(l.flags)}</div>` : ''}
     <div class="lead-actions" onclick="event.stopPropagation()">
-      ${maps}${sv}
       ${_emailDrafted.has(l.id) && l.status !== 'Email Sent'
         ? `<button class="btn-sm marksent-btn" onclick="markEmailSent('${l.id}')">&#10003; Mark as sent</button>
            <button class="btn-sm notrel-btn" onclick="cancelDraft('${l.id}')">Not sent</button>`
-        : `${['Contacted','Email Sent','Responded','Meeting Booked','Not Relevant'].includes(l.status) ? '' : l.email
+        : `${['Contacted','Email Sent','Responded','Meeting Booked','Contracted','Not Relevant'].includes(l.status) ? '' : l.email
             ? `<button class="btn-sm draft-btn" onclick="draftEmail('${l.id}')">Draft email</button>
                <button class="btn-sm" onclick="copyEmail('${l.id}')">Copy email</button>`
             : `<button class="btn-sm contacted-btn" onclick="updateStatus('${l.id}','Contacted')">Mark contacted</button>`}
-          ${['Meeting Booked','Not Relevant'].includes(l.status) ? '' : `<button class="btn-sm" onclick="updateStatus('${l.id}','Meeting Booked')">Meeting booked</button>`}
+          ${['Contacted','Email Sent'].includes(l.status) ? `<button class="btn-sm responded-btn" onclick="updateStatus('${l.id}','Responded')">Mark as Responded</button>` : ''}
+          ${l.status === 'Email Sent' ? `<button class="btn-sm notrel-btn" onclick="markEmailBounced('${l.id}')">Email Bounced</button>` : ''}
+          ${['Contacted','Email Sent','Responded'].includes(l.status) ? `<button class="btn-sm meeting-btn" onclick="updateStatus('${l.id}','Meeting Booked')">Meeting booked</button>` : ''}
+          ${l.status === 'Meeting Booked' ? `<button class="btn-sm won-btn" onclick="updateStatus('${l.id}','Contracted')">Contracted</button>` : ''}
           ${l.status !== 'New Lead' ? `<button class="btn-sm returnq-btn" onclick="updateStatus('${l.id}','New Lead')">Return to queue</button>` : ''}
-          ${l.status === 'Not Relevant' ? '' : `<button class="btn-sm notrel-btn" onclick="markNotRelevant('${l.id}')">Not relevant</button>`}`}
+          ${['Not Relevant','Contracted'].includes(l.status) ? '' : `<button class="btn-sm notrel-btn" onclick="markNotRelevant('${l.id}')">Not relevant</button>`}`}
     </div>
   </article>`;
 }
@@ -1694,17 +1808,28 @@ async function updateStatus(id, newStatus, notes) {
 }
 
 // === Render sections =====================================================
-const _ACTIONED = ['Email Sent','Contacted','Responded','Meeting Booked','Not Relevant'];
+const _ACTIONED = ['Email Sent','Contacted','Responded','Meeting Booked','Contracted','Not Relevant'];
+
+const _BAD_DOMAINS = new Set(['email.com','domain.com','example.com','example.co.uk',
+  'test.com','placeholder.com','noemail.com','noemail.co.uk','nodomain.com','none.com']);
+const _BAD_LOCALS  = new Set(['you','user','noemail','no-email','noreply','no-reply','null','undefined']);
+function isValidEmail(e) {
+  if (!e || !e.includes('@')) return false;
+  const at = e.toLowerCase().lastIndexOf('@');
+  const local = e.slice(0, at).toLowerCase();
+  const domain = e.slice(at + 1).toLowerCase();
+  return !_BAD_DOMAINS.has(domain) && !_BAD_LOCALS.has(local);
+}
 
 function renderEmailQueue() {
-  const leads = _leads.filter(l => l.email && !_ACTIONED.includes(l.status))
+  const leads = _leads.filter(l => l.email && isValidEmail(l.email) && !_ACTIONED.includes(l.status))
     .sort((a,b) => (b.score||0)-(a.score||0));
   document.getElementById('email-queue-container').innerHTML = leads.length
     ? leads.slice(0,30).map(leadCard).join('')
     : '<div class="empty">No leads ready to email.</div>';
 }
 function renderPhoneQueue() {
-  const leads = _leads.filter(l => !l.email && l.phone && !_ACTIONED.includes(l.status))
+  const leads = _leads.filter(l => (!l.email || !isValidEmail(l.email)) && l.phone && !_ACTIONED.includes(l.status))
     .sort((a,b) => (b.score||0)-(a.score||0));
   document.getElementById('phone-queue-container').innerHTML = leads.length
     ? leads.slice(0,30).map(leadCard).join('')
@@ -1718,14 +1843,28 @@ function renderOutreach() {
     : '<div class="empty">No outreach recorded yet.</div>';
 }
 function renderResponded() {
-  const leads = _leads.filter(l => ['Responded','Meeting Booked'].includes(l.status))
+  const leads = _leads.filter(l => l.status === 'Responded')
     .sort((a,b) => (b.score||0)-(a.score||0));
   document.getElementById('responded-container').innerHTML = leads.length
     ? leads.map(leadCard).join('')
     : '<div class="empty">No responses yet.</div>';
 }
+function renderMeetingBooked() {
+  const leads = _leads.filter(l => l.status === 'Meeting Booked')
+    .sort((a,b) => (b.score||0)-(a.score||0));
+  document.getElementById('meeting-booked-container').innerHTML = leads.length
+    ? leads.map(leadCard).join('')
+    : '<div class="empty">No meetings booked yet.</div>';
+}
+function renderContracted() {
+  const leads = _leads.filter(l => l.status === 'Contracted')
+    .sort((a,b) => (b.score||0)-(a.score||0));
+  document.getElementById('contracted-container').innerHTML = leads.length
+    ? leads.map(leadCard).join('')
+    : '<div class="empty">No contracted leads yet.</div>';
+}
 function renderResearch() {
-  const leads = _leads.filter(l => !l.email && !l.phone && l.status !== 'Not Relevant')
+  const leads = _leads.filter(l => (!l.email || !isValidEmail(l.email)) && !l.phone && l.priority === 'High' && l.status !== 'Not Relevant')
     .sort((a,b) => (b.score||0)-(a.score||0));
   document.getElementById('research-container').innerHTML = leads.length
     ? leads.slice(0,30).map(leadCard).join('')

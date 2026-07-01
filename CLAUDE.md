@@ -9,15 +9,17 @@ This public repo contains the **lead dashboard front-end only**:
 - `config.js` — Supabase connection config (anon key, read paths)
 - `src/scrapers/social/` — social enrichment scraper stubs
 
-The **scout pipeline itself is NOT in this repo**. The runner, schema, and
-migration tooling live in Jonathan's local workspace on his Mac:
+The **scout pipeline itself is NOT in this repo** — it lives in the
+`macfire-production` repo (`scout/runner.py`, `supabase/schema.sql`, and the
+one-time `migrations/notion_to_supabase.py`). This repo is the read-only
+front-end; work against Supabase directly, or `macfire-production` for pipeline
+changes.
 
-- `scout/runner.py` — the production scout runner
-- `supabase/schema.sql` — production database schema
-- Notion-to-Supabase migration script (443 cleaned leads, run with `--apply`)
-
-If you are an agent picking up this project and cannot find those files,
-that is why. Ask for the local workspace or work against Supabase directly.
+The original lead scout was a **Notion proof of concept**. It was migrated once
+into Supabase and is now **retired**: nothing reads from or writes to Notion, and
+Supabase `public.leads` is the single source of truth. The Notion "Lead Pipeline"
+database has been untouched since the June 2026 cutover. The `notion_page_id` /
+`raw_notion` columns remain only as migration provenance.
 
 ## Architecture (production design, June 2026)
 
@@ -40,7 +42,9 @@ that is why. Ask for the local workspace or work against Supabase directly.
     (persisted in browser localStorage)
   - Not Relevant tab with one-click "Add back to queue" action
   - Latest-run chip in the header (run date + lead count + priority breakdown)
-- 443 leads imported from the Notion source of truth
+- Supabase `public.leads` is the single source of truth (~270 live leads). The
+  earlier Notion proof of concept has been retired (originally ~443 imported,
+  then cleaned down)
 - Production scout pipeline (in `macfire-production` repo): Companies
   House signal + Google Places + Street View + 4-dimension confidence +
   website auto-detection + director appointment history + planning
@@ -51,6 +55,23 @@ that is why. Ask for the local workspace or work against Supabase directly.
 - This is a public repo. **Never check in secrets.** `config.js` ships
   with the Supabase anon key only; the service-role key belongs in the
   `macfire-production` repo's GitHub Actions secrets.
+- Outreach email templates are embedded in both dashboard copies:
+  `index.html` and `dashboard-v2.html`, in the `EMAIL_TEMPLATES` object.
+  They mirror the canonical Google Drive doc named
+  `MacFireOutreachEmailTemplates` (updated 24 June 2026), with final
+  sales-copy refinements agreed on 28 June 2026. Keep both dashboard
+  copies, `outreach-email-templates.md`, and
+  `outreach-template-preview.html` in sync when changing them.
+  The current approved approach is: warm, plain, credible, email-first,
+  no manual signature, no em dashes, no "Dougie" (use Douglas only if a
+  name is needed), and no claim that the premises is brand new. The
+  company is newly registered, but the business/premises may be an existing
+  place under new ownership. Use wording like "I saw [Company] has
+  recently been registered" plus "Whether this is a new site or an existing
+  place under new ownership..." where that nuance matters. If working
+  from Jonathan's local `MacFire Production` workspace, also check any
+  root-level `gh_pages_dashboard.html` snapshot, because older snapshots
+  may still build drafts from Supabase's stale `email_draft` field.
 - After any meaningful change to `index.html`, push to `main` (GH Pages
   picks it up automatically), then update the macfire-projects-dashboard
   data file with a plain-English line in `recentWins`.
