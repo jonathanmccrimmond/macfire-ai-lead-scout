@@ -1,0 +1,9 @@
+// MacFire Lead Scout — Supabase config
+// Copy this file to config.js and fill in your credentials.
+// config.js is gitignored and will never be committed.
+
+window.MACFIRE_CONFIG = {
+  supabaseUrl:  'https://YOUR-PROJECT-ID.supabase.co',
+  supabaseKey:  'YOUR-ANON-KEY-HERE',
+  table:        'leads',   // Supabase table name
+};

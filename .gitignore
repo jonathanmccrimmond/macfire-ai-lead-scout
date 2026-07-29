@@ -1,0 +1,5 @@
+# Node / build artefacts
+node_modules/
+dist/
+.env
+.env.local
