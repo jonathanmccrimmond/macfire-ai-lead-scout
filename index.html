@@ -144,6 +144,18 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
 .lead-detail{color:var(--muted);font-size:12px;line-height:1.6}
 .lead-detail strong{color:var(--text)}
 .lead-actions{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+/* Two-column card: details left, action buttons stacked at the top right.
+   Keeps the left column from getting crowded on dense leads. */
+.lead-body{display:flex;gap:16px;align-items:flex-start}
+.lead-body-main{flex:1 1 auto;min-width:0}
+.lead-actions-col{display:flex;flex-direction:column;gap:6px;flex:0 0 auto;
+  width:150px;align-items:stretch;margin-top:0}
+.lead-actions-col .lead-action-btn{width:100%;text-align:center;white-space:nowrap}
+@media (max-width:760px){
+  .lead-body{flex-direction:column;gap:9px}
+  .lead-actions-col{width:100%;flex-direction:row;flex-wrap:wrap}
+  .lead-actions-col .lead-action-btn{width:auto}
+}
 .lead-top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .lead-right-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
 .lead-link{background:var(--dark);border:1px solid var(--border);color:var(--text);
@@ -1538,36 +1550,40 @@ function leadCard(l) {
       ${channelBadge(l.channelQueue)}
       ${retentionBadge(l)}
     </div>
-    <div class="lead-detail">
-      ${l.director ? `<div><strong>Director:</strong> ${esc(l.director)}</div>` : ''}
-      ${l.address  ? `<div><strong>Address:</strong> ${esc(l.address)}</div>`  : ''}
-      ${phone      ? `<div><strong>Phone:</strong> ${phone}</div>`             : ''}
-      ${email      ? `<div><strong>Email:</strong> ${email}${emailWarningBadge(l.email)}</div>` : ''}
-      ${website    ? `<div><strong>Website:</strong> ${website} <span style="font-size:10px;color:var(--muted)">(${l.websiteConfidence})</span></div>` : ''}
-      ${l.incorporated ? `<div><strong>Incorporated:</strong> ${esc(l.incorporated)}</div>` : ''}
-      ${l.scout_date   ? `<div><strong>Scout date:</strong> ${esc(l.scout_date)}</div>`      : ''}
-      ${l.google_places ? `<div><strong>Google:</strong> ${esc(l.google_places)}</div>` : ''}
-      ${conf}
-      ${profile}
-      ${l.reasoning ? `<div><strong>Reason:</strong> ${esc(l.reasoning)}</div>` : ''}
-      ${l.relevance_notes ? `<div class="nr-notes-snippet">Notes: ${esc(l.relevance_notes)}</div>` : ''}
-    </div>
-    ${flags}
-    <div class="lead-actions" onclick="event.stopPropagation()">
-      ${_emailDrafted.has(l.id) && l.status !== 'Email Sent'
-        ? `<button class="lead-action-btn marksent-btn" onclick="markEmailSent('${l.id}')">✓ Mark as sent</button>
-           <button class="lead-action-btn notrel-btn" onclick="cancelDraft('${l.id}')">Not sent</button>`
-        : `
-          ${['Contacted','Email Sent','Responded','Contracted','Not Relevant'].includes(l.status) ? '' : hasUsableEmail(l)
-            ? `<button class="lead-action-btn draft-btn" onclick="draftEmail('${l.id}')">Draft email</button>
-               <button class="lead-action-btn" onclick="copyEmail('${l.id}')">Copy email</button>`
-            : `<button class="lead-action-btn contacted-btn" onclick="markContacted('${l.id}')">Mark Contacted</button>`}
-          ${['Contacted','Email Sent'].includes(l.status) ? `<button class="lead-action-btn responded-btn" onclick="updateStatus('${l.id}','Responded')">Mark as Responded</button>` : ''}
-          ${l.status === 'Email Sent' ? `<button class="lead-action-btn notrel-btn" onclick="markEmailBounced('${l.id}')">Email Bounced</button>` : ''}
-          ${['Contracted','Not Relevant'].includes(l.status) ? '' : `<button class="lead-action-btn meeting-btn" onclick="updateStatus('${l.id}','Contracted')">Contracted</button>`}
-          ${l.status !== 'New Lead' ? `<button class="lead-action-btn returnq-btn" onclick="updateStatus('${l.id}','New Lead')">Return to queue</button>` : ''}
-          ${['Not Relevant','Contracted'].includes(l.status) ? '' : `<button class="lead-action-btn notrel-btn" onclick="markNotRelevant('${l.id}')">Not Relevant</button>`}
-        `}
+    <div class="lead-body">
+      <div class="lead-body-main">
+        <div class="lead-detail">
+          ${l.director ? `<div><strong>Director:</strong> ${esc(l.director)}</div>` : ''}
+          ${l.address  ? `<div><strong>Address:</strong> ${esc(l.address)}</div>`  : ''}
+          ${phone      ? `<div><strong>Phone:</strong> ${phone}</div>`             : ''}
+          ${email      ? `<div><strong>Email:</strong> ${email}${emailWarningBadge(l.email)}</div>` : ''}
+          ${website    ? `<div><strong>Website:</strong> ${website} <span style="font-size:10px;color:var(--muted)">(${l.websiteConfidence})</span></div>` : ''}
+          ${l.incorporated ? `<div><strong>Incorporated:</strong> ${esc(l.incorporated)}</div>` : ''}
+          ${l.scout_date   ? `<div><strong>Scout date:</strong> ${esc(l.scout_date)}</div>`      : ''}
+          ${l.google_places ? `<div><strong>Google:</strong> ${esc(l.google_places)}</div>` : ''}
+          ${conf}
+          ${profile}
+          ${l.reasoning ? `<div><strong>Reason:</strong> ${esc(l.reasoning)}</div>` : ''}
+          ${l.relevance_notes ? `<div class="nr-notes-snippet">Notes: ${esc(l.relevance_notes)}</div>` : ''}
+        </div>
+        ${flags}
+      </div>
+      <div class="lead-actions-col" onclick="event.stopPropagation()">
+        ${_emailDrafted.has(l.id) && l.status !== 'Email Sent'
+          ? `<button class="lead-action-btn marksent-btn" onclick="markEmailSent('${l.id}')">✓ Mark as sent</button>
+             <button class="lead-action-btn notrel-btn" onclick="cancelDraft('${l.id}')">Not sent</button>`
+          : `
+            ${['Contacted','Email Sent','Responded','Contracted','Not Relevant'].includes(l.status) ? '' : hasUsableEmail(l)
+              ? `<button class="lead-action-btn draft-btn" onclick="draftEmail('${l.id}')">Draft email</button>
+                 <button class="lead-action-btn" onclick="copyEmail('${l.id}')">Copy email</button>`
+              : `<button class="lead-action-btn contacted-btn" onclick="markContacted('${l.id}')">Mark Contacted</button>`}
+            ${['Contacted','Email Sent'].includes(l.status) ? `<button class="lead-action-btn responded-btn" onclick="updateStatus('${l.id}','Responded')">Mark as Responded</button>` : ''}
+            ${l.status === 'Email Sent' ? `<button class="lead-action-btn notrel-btn" onclick="markEmailBounced('${l.id}')">Email Bounced</button>` : ''}
+            ${['Contracted','Not Relevant'].includes(l.status) ? '' : `<button class="lead-action-btn meeting-btn" onclick="updateStatus('${l.id}','Contracted')">Contracted</button>`}
+            ${l.status !== 'New Lead' ? `<button class="lead-action-btn returnq-btn" onclick="updateStatus('${l.id}','New Lead')">Return to queue</button>` : ''}
+            ${['Not Relevant','Contracted'].includes(l.status) ? '' : `<button class="lead-action-btn notrel-btn" onclick="markNotRelevant('${l.id}')">Not Relevant</button>`}
+          `}
+      </div>
     </div>
   </div>`;
 }
