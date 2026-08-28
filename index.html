@@ -422,7 +422,6 @@ body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMac
     <div class="stat-card accent">
       <div class="label">Total Leads</div>
       <div class="value" id="kpi-total">-</div>
-      <div class="sub" id="kpi-days">Loading…</div>
     </div>
     <div class="stat-card">
       <div class="label">High Priority</div>
@@ -632,6 +631,7 @@ const ANALYTICS = {
 let _sb = null;
 let _authUser = null; // {id, email} of the signed-in Supabase Auth user, set in init()
 let _leads = [];
+let _leadTotalCount = null;
 let _charts = {};
 let _analyticsReady = false;
 let _filterTrackTimer = null;
@@ -855,21 +855,53 @@ async function doLogout() {
 }
 
 // ── Data loading ───────────────────────────────────────────────────────────
+async function fetchExactLeadCount(table) {
+  const { count, error } = await _sb
+    .from(table)
+    .select('id', { count: 'exact', head: true })
+    .is('anonymized_at', null);
+  if (error) throw error;
+  return count || 0;
+}
+
+async function fetchAllLeads(table) {
+  const pageSize = 1000;
+  const rows = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await _sb
+      .from(table)
+      .select('*')
+      .is('anonymized_at', null)
+      .order('score', { ascending: false })
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+
+    const page = data || [];
+    rows.push(...page);
+    if (page.length < pageSize) break;
+    from += pageSize;
+  }
+
+  return rows;
+}
+
 async function loadData() {
   document.getElementById('last-updated').textContent = 'Loading…';
   const cfg = getConfig();
   const table = cfg?.table || 'leads';
   try {
-    const { data, error } = await _sb
-      .from(table)
-      .select('*')
-      .order('score', { ascending: false });
-    if (error) throw error;
+    const [totalCount, data] = await Promise.all([
+      fetchExactLeadCount(table),
+      fetchAllLeads(table),
+    ]);
+    _leadTotalCount = totalCount;
     // Anonymised leads (rejected 30+ days, or opted-out) have had their
     // personal data cleared by the retention job; hide them from every tab
     // rather than rendering blank rows. See docs/legitimate-interests-assessment.md
     // in macfire-production.
-    _leads = (data || []).filter(l => !l.anonymized_at).map(normalizeLead).map(enrichLead);
+    _leads = (data || []).map(normalizeLead).map(enrichLead);
     if (_leads.length === 0) {
       showBanner('warning',
         `Connected to the production database but no rows returned from the <strong>${table}</strong> table. ` +
@@ -1062,8 +1094,7 @@ function renderAll_data() {
   const stats = computeStats(_leads);
 
   // KPI
-  document.getElementById('kpi-total').textContent      = _leads.length;
-  document.getElementById('kpi-days').textContent       = `${stats.dates.length} scout run${stats.dates.length !== 1 ? 's' : ''}`;
+  document.getElementById('kpi-total').textContent      = _leadTotalCount ?? _leads.length;
   document.getElementById('kpi-high').textContent       = stats.pc.High;
   const _eQ = _leads.filter(l => hasUsableEmail(l) && !['Email Sent','Contacted','Responded','Contracted','Not Relevant'].includes(l.status));
   const _pQ = _leads.filter(l => !hasUsableEmail(l) && l.phone && !['Email Sent','Contacted','Responded','Contracted','Not Relevant'].includes(l.status));
